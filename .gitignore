@@ -1,0 +1,7 @@
+venv/
+opal.db
+*.db
+*.csv
+__pycache__/
+*.pyc
+.DS_Store

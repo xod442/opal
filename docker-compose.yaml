@@ -1,0 +1,23 @@
+services:
+
+  opal:
+    build: .
+    ports:
+      - "8080:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      DB_PATH: /data/opal.db
+    restart: unless-stopped
+
+  ingest:
+    build: .
+    volumes:
+      - ./data:/data
+      - ./csv:/csv:ro
+    environment:
+      DB_PATH: /data/opal.db
+    entrypoint: ["python3", "ingest.py"]
+    command: ["/csv/engagement.csv"]
+    profiles:
+      - ingest
