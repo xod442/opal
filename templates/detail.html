@@ -23,6 +23,18 @@
   }
   header a { color: var(--accent); text-decoration: none; font-size: 13px; }
   header a:hover { text-decoration: underline; }
+  .btn-edit {
+    margin-left: auto;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 16px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .btn-edit:hover { border-color: var(--accent); color: var(--accent); }
   header h1 { font-size: 18px; font-weight: 700; }
 
   .container { padding: 32px; max-width: 860px; }
@@ -62,6 +74,7 @@
 <header>
   <a href="/">← Back to dashboard</a>
   <h1>{{ c.customer_name }}</h1>
+  <a class="btn-edit" href="/customer/{{ c.id }}/edit">Edit</a>
 </header>
 
 <div class="container">

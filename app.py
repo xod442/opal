@@ -7,8 +7,8 @@ Usage:
 
 import os
 import sqlite3
-from fastapi import FastAPI, Request, Query
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request, Query, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 DB_PATH = os.getenv("DB_PATH", os.path.join(os.path.dirname(__file__), "opal.db"))
@@ -103,3 +103,80 @@ def detail(request: Request, customer_id: int):
         name="detail.html",
         context={"c": customer},
     )
+
+
+TEMP_ORDER = {
+    "Critical - We are at risk of loosing them as a customer": 1,
+    "Hot - they are escalating": 2,
+    "Concerned - they are complaining": 3,
+    "Stable - but needs attention": 4,
+}
+TEMP_LABEL = {
+    "Critical - We are at risk of loosing them as a customer": "Critical",
+    "Hot - they are escalating": "Hot",
+    "Concerned - they are complaining": "Concerned",
+    "Stable - but needs attention": "Stable",
+}
+
+
+@app.get("/customer/{customer_id}/edit", response_class=HTMLResponse)
+def edit_form(request: Request, customer_id: int):
+    conn = get_db()
+    customer = conn.execute(
+        "SELECT * FROM customers WHERE id = ?", (customer_id,)
+    ).fetchone()
+    conn.close()
+    if not customer:
+        return HTMLResponse("Not found", status_code=404)
+    return templates.TemplateResponse(
+        request=request,
+        name="edit.html",
+        context={"c": customer, "temp_options": list(TEMP_ORDER.keys())},
+    )
+
+
+@app.post("/customer/{customer_id}/edit")
+def edit_save(
+    customer_id: int,
+    customer_name: str = Form(...),
+    temperature: str = Form(...),
+    at_risk: str = Form(...),
+    risk_reasons: str = Form(""),
+    architecture: str = Form(""),
+    near_term_goals: str = Form(""),
+    bu_contact: str = Form(""),
+    ask_from_bu: str = Form(""),
+    background: str = Form(""),
+):
+    conn = get_db()
+    conn.execute("""
+        UPDATE customers SET
+            customer_name      = ?,
+            temperature        = ?,
+            temperature_label  = ?,
+            temperature_order  = ?,
+            at_risk            = ?,
+            risk_reasons       = ?,
+            architecture       = ?,
+            near_term_goals    = ?,
+            bu_contact         = ?,
+            ask_from_bu        = ?,
+            background         = ?
+        WHERE id = ?
+    """, (
+        customer_name,
+        temperature,
+        TEMP_LABEL.get(temperature, temperature),
+        TEMP_ORDER.get(temperature, 99),
+        at_risk,
+        risk_reasons,
+        architecture,
+        near_term_goals,
+        bu_contact,
+        ask_from_bu,
+        background,
+        customer_id,
+    ))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/", status_code=303)

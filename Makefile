@@ -8,7 +8,7 @@ build:
 up:
 	docker compose up -d
 	@echo ""
-	@echo "Opal is running at http://localhost:8080"
+	@echo "Opal is running at http://localhost:9090"
 	@echo ""
 
 # Build + start

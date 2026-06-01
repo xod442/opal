@@ -151,8 +151,17 @@
 
   a.detail-link { color: var(--accent); text-decoration: none; font-weight: 500; }
   a.detail-link:hover { text-decoration: underline; }
+  a.edit-link { color: var(--text2); text-decoration: none; font-size: 12px; border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; }
+  a.edit-link:hover { color: var(--text); border-color: var(--text2); }
 
   .truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text2); font-size: 12px; }
+
+  /* Sortable headers */
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { color: var(--text); background: #2a2e45; }
+  th.sortable::after { content: ' ⇕'; font-size: 10px; opacity: 0.35; }
+  th.sort-asc::after  { content: ' ↑'; opacity: 1; color: var(--accent); }
+  th.sort-desc::after { content: ' ↓'; opacity: 1; color: var(--accent); }
 </style>
 </head>
 <body>
@@ -224,12 +233,12 @@
     <table>
       <thead>
         <tr>
-          <th>Customer</th>
-          <th>Heat</th>
-          <th>At Risk</th>
-          <th>Location</th>
-          <th>Account Manager</th>
-          <th>Sales Engineer</th>
+          <th class="sortable" data-col="0">Customer</th>
+          <th class="sortable" data-col="1" data-type="heat">Heat</th>
+          <th class="sortable" data-col="2">At Risk</th>
+          <th class="sortable" data-col="3">Location</th>
+          <th class="sortable" data-col="4">Account Manager</th>
+          <th class="sortable" data-col="5">Sales Engineer</th>
           <th>Risk Reasons</th>
           <th></th>
         </tr>
@@ -252,7 +261,11 @@
           <td>{{ c.account_manager }}</td>
           <td>{{ c.sales_engineer }}</td>
           <td><div class="truncate" title="{{ c.risk_reasons }}">{{ c.risk_reasons }}</div></td>
-          <td><a class="detail-link" href="/customer/{{ c.id }}">Details →</a></td>
+          <td style="white-space:nowrap">
+            <a class="detail-link" href="/customer/{{ c.id }}">Details →</a>
+            &nbsp;
+            <a class="edit-link" href="/customer/{{ c.id }}/edit">Edit</a>
+          </td>
         </tr>
         {% else %}
         <tr><td colspan="8" style="text-align:center; color:var(--text2); padding:32px;">No customers match the current filters.</td></tr>
@@ -262,5 +275,46 @@
   </div>
 
 </div>
+
+<script>
+  // Heat sort order: Critical=1, Hot=2, Concerned=3, Stable=4
+  const heatOrder = { Critical: 1, Hot: 2, Concerned: 3, Stable: 4 };
+
+  document.querySelectorAll('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const table = th.closest('table');
+      const tbody = table.querySelector('tbody');
+      const col = parseInt(th.dataset.col);
+      const isHeat = th.dataset.type === 'heat';
+      const asc = !th.classList.contains('sort-asc');
+
+      // Reset all headers
+      table.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {
+        const aCell = a.cells[col];
+        const bCell = b.cells[col];
+        if (!aCell || !bCell) return 0;
+
+        let aVal = aCell.textContent.trim();
+        let bVal = bCell.textContent.trim();
+
+        if (isHeat) {
+          aVal = heatOrder[aVal] || 99;
+          bVal = heatOrder[bVal] || 99;
+          return asc ? aVal - bVal : bVal - aVal;
+        }
+
+        return asc
+          ? aVal.localeCompare(bVal)
+          : bVal.localeCompare(aVal);
+      });
+
+      rows.forEach(r => tbody.appendChild(r));
+    });
+  });
+</script>
 </body>
 </html>
