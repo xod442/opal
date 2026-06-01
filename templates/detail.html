@@ -135,6 +135,10 @@
       <div class="label">Background</div>
       <div class="value {% if not c.background %}muted{% endif %}">{{ c.background or 'None' }}</div>
     </div>
+    <div class="field full" style="border-color: rgba(79,156,249,0.3);">
+      <div class="label" style="color:var(--accent)">Additional Notes</div>
+      <div class="value {% if not c.notes %}muted{% endif %}">{{ c.notes or 'No notes added.' }}</div>
+    </div>
   </div>
 
 </div>

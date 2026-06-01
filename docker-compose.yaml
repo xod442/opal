@@ -8,6 +8,7 @@ services:
       - ./data:/data
     environment:
       DB_PATH: /data/opal.db
+      BACKUP_DIR: /data/backups
     restart: unless-stopped
 
   ingest:
