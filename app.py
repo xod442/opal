@@ -122,8 +122,35 @@ def migrate_db():
             VALUES (?, ?, ?, ?, 1, 1, ?)
         """, ("admin", "", pwd_ctx.hash("admin"), "admin", datetime.now().isoformat()))
 
+    # audit_log table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS audit_log (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            ts       TEXT NOT NULL,
+            username TEXT NOT NULL,
+            action   TEXT NOT NULL,
+            target   TEXT,
+            detail   TEXT
+        )
+    """)
+
     conn.commit()
     conn.close()
+
+
+# ── Audit log ─────────────────────────────────────────────────────────────────
+
+def log_action(username: str, action: str, target: str = "", detail: str = ""):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute(
+            "INSERT INTO audit_log (ts, username, action, target, detail) VALUES (?,?,?,?,?)",
+            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), username, action, target, detail),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass  # never let logging crash the app
 
 
 # ── Backup helpers ────────────────────────────────────────────────────────────
@@ -454,6 +481,8 @@ def edit_save(
     ))
     conn.commit()
     conn.close()
+    log_action(session["username"], "edit_customer", customer_name,
+               f"heat={TEMP_LABEL.get(temperature, temperature)}, at_risk={at_risk}")
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -571,27 +600,33 @@ def admin(request: Request, msg: str = Query("")):
 
 @app.post("/admin/backup")
 def admin_backup(request: Request):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     dest = do_backup()
     name = os.path.basename(dest) if dest else "nothing to backup"
+    log_action(session["username"], "backup", name)
     return RedirectResponse(url=f"/admin?msg=Backup+created%3A+{name}", status_code=303)
 
 
 @app.post("/admin/upload")
 async def admin_upload(request: Request, file: UploadFile = File(...)):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     content = await file.read()
     text = content.decode("utf-8-sig")
     inserted, skipped_dup, skipped_mist = ingest_fileobj(io.StringIO(text))
+    log_action(session["username"], "upload_csv", file.filename,
+               f"{inserted} inserted, {skipped_dup} duplicates, {skipped_mist} Mist skipped")
     msg = f"{inserted}+inserted%2C+{skipped_dup}+duplicates+ignored%2C+{skipped_mist}+Mist+rows+skipped"
     return RedirectResponse(url=f"/admin?msg={msg}", status_code=303)
 
 
 @app.get("/admin/export")
 def admin_export(request: Request):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     conn = get_db()
     rows = conn.execute("SELECT * FROM customers ORDER BY temperature_order, customer_name").fetchall()
@@ -614,6 +649,8 @@ def admin_export(request: Request):
             r["ask_from_bu"], r["background"], r["notes"], r["last_modified"],
         ])
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_action(session["username"], "export_csv", f"opal_export_{ts}.csv",
+               f"{len(rows)} records exported")
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]), media_type="text/csv",
@@ -623,10 +660,12 @@ def admin_export(request: Request):
 
 @app.post("/admin/delete-db")
 def admin_delete_db(request: Request, confirm: str = Form("")):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     if confirm.strip().upper() != "DELETE":
         return RedirectResponse(url="/admin?msg=Type+DELETE+to+confirm", status_code=303)
+    log_action(session["username"], "delete_db", "opal.db", "Database permanently deleted")
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
     return RedirectResponse(url="/admin?msg=Database+deleted", status_code=303)
@@ -634,7 +673,8 @@ def admin_delete_db(request: Request, confirm: str = Form("")):
 
 @app.post("/admin/restore/{filename}")
 def admin_restore(request: Request, filename: str):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     src = os.path.join(BACKUP_DIR, filename)
     if not os.path.exists(src):
@@ -643,6 +683,7 @@ def admin_restore(request: Request, filename: str):
         do_backup()
     shutil.copy2(src, DB_PATH)
     migrate_db()
+    log_action(session["username"], "restore_backup", filename)
     return RedirectResponse(url=f"/admin?msg=Restored+from+{filename}", status_code=303)
 
 
@@ -656,7 +697,8 @@ def admin_user_create(
     password: str = Form(...),
     role: str = Form("user"),
 ):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     conn = get_db()
     try:
@@ -666,6 +708,7 @@ def admin_user_create(
         """, (username.strip(), email.strip(), pwd_ctx.hash(password), role,
               datetime.now().isoformat()))
         conn.commit()
+        log_action(session["username"], "create_user", username.strip(), f"role={role}")
         msg = f"User+{username}+created"
     except sqlite3.IntegrityError:
         msg = f"Username+{username}+already+exists"
@@ -675,31 +718,57 @@ def admin_user_create(
 
 @app.post("/admin/users/{user_id}/toggle")
 def admin_user_toggle(request: Request, user_id: int):
-    if not require_admin(request):
-        return RedirectResponse(url="/login", status_code=303)
     session = get_session(request)
-    if session and session["user_id"] == user_id:
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+    if session["user_id"] == user_id:
         return RedirectResponse(url="/admin?msg=Cannot+disable+your+own+account", status_code=303)
     conn = get_db()
+    target_user = conn.execute("SELECT username, is_active FROM users WHERE id = ?", (user_id,)).fetchone()
     conn.execute("UPDATE users SET is_active = 1 - is_active WHERE id = ?", (user_id,))
     conn.commit()
     conn.close()
+    if target_user:
+        new_state = "disabled" if target_user["is_active"] else "enabled"
+        log_action(session["username"], f"user_{new_state}", target_user["username"])
     return RedirectResponse(url="/admin?msg=User+updated", status_code=303)
 
 
 @app.post("/admin/users/{user_id}/reset-password")
 def admin_reset_password(request: Request, user_id: int):
-    if not require_admin(request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
         return RedirectResponse(url="/login", status_code=303)
     temp_pw = secrets.token_urlsafe(10)
     conn = get_db()
+    target_user = conn.execute("SELECT username FROM users WHERE id = ?", (user_id,)).fetchone()
     conn.execute(
         "UPDATE users SET password_hash = ?, must_change_password = 1 WHERE id = ?",
         (pwd_ctx.hash(temp_pw), user_id)
     )
     conn.commit()
     conn.close()
+    if target_user:
+        log_action(session["username"], "reset_password", target_user["username"])
     return RedirectResponse(
         url=f"/admin?msg=Temporary+password%3A+{temp_pw}+%E2%80%94+user+must+change+on+next+login",
         status_code=303,
+    )
+
+
+# ── Audit Log ─────────────────────────────────────────────────────────────────
+
+@app.get("/admin/audit", response_class=HTMLResponse)
+def audit_log_page(request: Request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+    conn = get_db()
+    entries = conn.execute(
+        "SELECT * FROM audit_log ORDER BY id DESC LIMIT 500"
+    ).fetchall()
+    conn.close()
+    return templates.TemplateResponse(
+        request=request, name="audit.html",
+        context={"entries": entries, "session": session},
     )
