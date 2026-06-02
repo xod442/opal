@@ -284,6 +284,7 @@
   <a class="nav-link" href="#dashboard">Main Dashboard</a>
   <a class="nav-link" href="#detail-edit">Detail &amp; Edit</a>
   <a class="nav-link" href="#executive">Executive View</a>
+  <a class="nav-link" href="#trends">Trend Tracker</a>
   <a class="nav-link" href="#stale">Stale Records</a>
   <a class="nav-link" href="#audit">Audit Log</a>
 
@@ -315,6 +316,7 @@
       <li>Executive overview with regional breakdown</li>
       <li>Stale record detection (top 20 longest without an update)</li>
       <li>Secure login with role-based access (admin / user)</li>
+      <li>Week-over-week heat trend tracking with dashboard indicators</li>
       <li>Email alerts when a new Critical customer is ingested</li>
       <li>Full audit trail of every database change</li>
       <li>Automated backups twice daily (6 AM and 6 PM)</li>
@@ -735,6 +737,63 @@ docker compose run --rm ingest</code></pre>
       <li>Regional hotspot list (locations with the most Critical/Hot customers)</li>
       <li>Generation timestamp at the bottom</li>
     </ul>
+  </section>
+
+  <!-- ── Trend Tracker ── -->
+  <section id="trends">
+    <h2>Trend Tracker</h2>
+    <p>
+      Available at <strong>Trends</strong> in the dashboard header. Shows week-over-week heat movement
+      for every customer — who is getting worse, who is improving, and who is new.
+    </p>
+
+    <h3>Summary cards</h3>
+    <p>Four cards at the top of the page give an instant count:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Card</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Getting Worse</strong></td><td>Customers whose heat has moved toward Critical since their last snapshot</td></tr>
+          <tr><td><strong>Getting Better</strong></td><td>Customers whose heat has improved toward Stable since their last snapshot</td></tr>
+          <tr><td><strong>New Customers</strong></td><td>Customers with only one heat snapshot — just added to the system</td></tr>
+          <tr><td><strong>No Change</strong></td><td>Customers whose heat level has not moved</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Trend table</h3>
+    <p>
+      The table lists every customer with their previous heat level, current heat level, when the change
+      was recorded, and their AM and SE. Click the filter tabs to narrow to a specific direction.
+      Click <strong>Details →</strong> to go directly to the customer's detail page.
+    </p>
+
+    <h3>Dashboard trend indicators</h3>
+    <p>The main dashboard Heat column also shows inline trend indicators:</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Indicator</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td><strong style="color:#ef4444;">↑</strong> (red arrow)</td><td>Customer heat has increased (gotten worse) — hover to see previous level</td></tr>
+          <tr><td><strong style="color:#22c55e;">↓</strong> (green arrow)</td><td>Customer heat has decreased (improved) — hover to see previous level</td></tr>
+          <tr><td><span style="background:rgba(79,156,249,0.12);color:#4f9cf9;border:1px solid rgba(79,156,249,0.3);border-radius:10px;padding:1px 7px;font-size:12px;font-weight:700;">New</span></td><td>Customer was added this cycle and has no prior heat history</td></tr>
+          <tr><td><em>No indicator</em></td><td>Heat level unchanged since last snapshot</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>How snapshots are recorded</h3>
+    <ul>
+      <li><strong>CSV ingest</strong> — a snapshot is recorded for each newly inserted customer.</li>
+      <li><strong>Edit save</strong> — a snapshot is recorded whenever the heat level is changed on the Edit page.</li>
+      <li><strong>Deduplication</strong> — if the heat level has not changed since the last snapshot, no new entry is written. Re-ingesting the same CSV does not create duplicate history.</li>
+    </ul>
+
+    <div class="callout callout-note">
+      <strong>Note:</strong> Trends are based on the two most recent heat snapshots per customer.
+      A customer needs at least two snapshots (i.e., their heat must have changed at least once) to
+      show a directional trend. Brand-new customers show as <strong>New</strong> until their heat changes.
+    </div>
   </section>
 
   <!-- ── Stale Records ── -->

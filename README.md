@@ -16,6 +16,7 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 - **Weekly CSV ingest** — upload Microsoft Forms exports; duplicates and Mist rows filtered automatically
 - **Secure login** — bcrypt passwords, signed session cookies, forced password change on first login
 - **User management** — create users, enable/disable accounts, reset passwords (admin only)
+- **Trend tracking** — week-over-week heat movement with dashboard indicators and a dedicated trends page
 - **Email alerts** — automatic email notification when a new Critical customer is ingested
 - **Audit trail** — every database change logged with the user who made it
 - **Auto-backup** — database backed up at 6 AM and 6 PM daily, last 20 backups retained
@@ -140,7 +141,7 @@ open admin-guide.html
 - [x] Secure login and user management
 - [x] Audit trail
 - [x] Email alerts for new Critical customers
-- [ ] Week-over-week trend tracking
+- [x] Week-over-week trend tracking
 
 ---
 
