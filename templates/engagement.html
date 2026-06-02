@@ -106,11 +106,11 @@
           <td><strong>{{ c.customer_name }}</strong></td>
           <td><span class="badge badge-{{ c.temperature_label }}">{{ c.temperature_label }}</span></td>
           <td style="color:var(--text2); font-size:13px;">{{ c.account_manager or '—' }}</td>
-          <td style="font-size:13px;">{{ c.state or '<span class="cell-empty">—</span>' }}</td>
-          <td style="font-size:13px;">{{ c.category or '<span class="cell-empty">—</span>' }}</td>
-          <td style="font-size:13px;">{{ c.bu_plm_sponsor or '<span class="cell-empty">—</span>' }}</td>
-          <td style="font-size:13px;">{{ c.bu_tme_sponsor or '<span class="cell-empty">—</span>' }}</td>
-          <td style="font-size:13px;">{{ c.current_status or '<span class="cell-empty">—</span>' }}</td>
+          <td style="font-size:13px;">{% if c.state %}{{ c.state }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
+          <td style="font-size:13px;">{% if c.category %}{{ c.category }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
+          <td style="font-size:13px;">{% if c.bu_plm_sponsor %}{{ c.bu_plm_sponsor }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
+          <td style="font-size:13px;">{% if c.bu_tme_sponsor %}{{ c.bu_tme_sponsor }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
+          <td style="font-size:13px;">{% if c.current_status %}{{ c.current_status }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
           <td class="cell-wrap">
             {% if c.next_actions %}{{ c.next_actions }}{% else %}<span class="cell-empty">—</span>{% endif %}
           </td>
