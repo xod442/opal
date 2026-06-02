@@ -268,6 +268,7 @@
   <a class="nav-link" href="#prerequisites">Prerequisites</a>
   <a class="nav-link" href="#installation">Installation</a>
   <a class="nav-link" href="#first-login">First Login</a>
+  <a class="nav-link" href="#clean-install">Clean Install Checklist</a>
 
   <div class="nav-section">Operations</div>
   <a class="nav-link" href="#starting-stopping">Starting &amp; Stopping</a>
@@ -403,6 +404,49 @@ cd opal</code></pre>
         <li>You are redirected to the main dashboard. The header shows <em>Signed in: admin</em>.</li>
         <li>Go to <strong>Admin → User Management</strong> to create accounts for your team.</li>
       </ol>
+    </div>
+  </section>
+
+  <!-- ── Clean Install Checklist ── -->
+  <section id="clean-install">
+    <h2>Clean Install Checklist</h2>
+    <p>Use this checklist to confirm a fresh deployment is healthy before handing it off to the team.</p>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Check</th><th>Expected result</th></tr></thead>
+        <tbody>
+          <tr><td><code>docker compose ps</code></td><td><code>opal</code> container status <strong>Up</strong></td></tr>
+          <tr><td><code>docker compose logs</code></td><td>No errors; last line is <code>Application startup complete</code></td></tr>
+          <tr><td>Open <code>http://localhost:9090</code></td><td>Redirects to <code>/login</code></td></tr>
+          <tr><td>Login with <code>admin / admin</code></td><td>Redirects to <strong>/change-password</strong></td></tr>
+          <tr><td>Set a new password</td><td>Redirects to dashboard — header shows <em>Signed in: admin</em></td></tr>
+          <tr><td>Click <strong>Admin</strong></td><td>Admin page loads with Upload CSV, User Management, and Email Alerts sections</td></tr>
+          <tr><td>Click <strong>Trends</strong></td><td>Trend Tracker page loads (empty until data is ingested)</td></tr>
+          <tr><td>Upload a CSV file</td><td>Confirmation banner shows inserted / duplicate / skipped counts</td></tr>
+          <tr><td>Dashboard after ingest</td><td>Customer rows appear with heat badges and trend indicators</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>Resetting to factory defaults</h3>
+    <p>To wipe all data and start completely fresh — for example, when redeploying to a new host or clearing a test environment:</p>
+
+    <div class="callout callout-danger">
+      <strong>Destructive.</strong> This permanently deletes the database, all customer records, users (including the admin account), audit logs, backups, and email settings. There is no undo.
+    </div>
+
+    <pre><code>docker compose down
+rm -rf data/
+docker compose up -d</code></pre>
+
+    <p>
+      After the container restarts, Opal recreates the database with a fresh default <code>admin / admin</code>
+      account and empty tables. Follow the <a href="#first-login" style="color:var(--accent);">First Login</a> steps to set a new password.
+    </p>
+
+    <div class="callout callout-tip">
+      <strong>Tip:</strong> If you only want to reset the database but keep your backups, move <code>data/backups/</code> somewhere safe before deleting <code>data/</code>, then restore after the container comes back up.
     </div>
   </section>
 
