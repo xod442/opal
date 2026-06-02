@@ -173,6 +173,12 @@
   .card.stable.active   { border-color: var(--stable);   background: var(--stable-bg); }
   .card.atrisk.active   { border-color: #c084fc; background: rgba(192,132,252,0.1); }
 
+  .trend-up   { color: #ef4444; font-size: 13px; font-weight: 800; margin-left: 5px; }
+  .trend-down { color: #22c55e; font-size: 13px; font-weight: 800; margin-left: 5px; }
+  .trend-new  { color: #4f9cf9; font-size: 10px; font-weight: 700; margin-left: 5px;
+                background: rgba(79,156,249,0.12); border: 1px solid rgba(79,156,249,0.3);
+                border-radius: 10px; padding: 1px 6px; }
+
   /* Sortable headers */
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { color: var(--text); background: #2a2e45; }
@@ -204,6 +210,7 @@
   </div>
   <div style="margin-left:auto; display:flex; gap:10px; align-items:center;">
     <a href="/executive" style="color:var(--text2); text-decoration:none; font-size:13px; border:1px solid var(--border); border-radius:6px; padding:5px 14px;">Executive View</a>
+    <a href="/trends" style="color:var(--text2); text-decoration:none; font-size:13px; border:1px solid var(--border); border-radius:6px; padding:5px 14px;">Trends</a>
     <a href="/stale" style="color:var(--text2); text-decoration:none; font-size:13px; border:1px solid var(--border); border-radius:6px; padding:5px 14px;">Stale Records</a>
     <a href="/admin" style="color:var(--text2); text-decoration:none; font-size:13px; border:1px solid var(--border); border-radius:6px; padding:5px 14px;">Admin</a>
     <div class="user-pill">
@@ -292,7 +299,19 @@
         {% for c in customers %}
         <tr class="row-{{ c.temperature_label }}">
           <td><strong>{{ c.customer_name }}</strong></td>
-          <td><span class="badge badge-{{ c.temperature_label }}">{{ c.temperature_label }}</span></td>
+          <td>
+            <span class="badge badge-{{ c.temperature_label }}">{{ c.temperature_label }}</span>
+            {% if trend_map and c.id in trend_map %}
+              {% set t = trend_map[c.id] %}
+              {% if t.direction == 'worse' %}
+                <span class="trend-up" title="Was {{ t.from_label }}">↑</span>
+              {% elif t.direction == 'better' %}
+                <span class="trend-down" title="Was {{ t.from_label }}">↓</span>
+              {% elif t.direction == 'new' %}
+                <span class="trend-new">New</span>
+              {% endif %}
+            {% endif %}
+          </td>
           <td>
             {% if 'Yes' in c.at_risk %}
               <span class="risk-yes">Yes</span>

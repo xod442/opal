@@ -145,6 +145,18 @@ def migrate_db():
         )
     """)
 
+    # heat_history table — one row per customer per heat change
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS heat_history (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id       INTEGER NOT NULL,
+            ts                TEXT NOT NULL,
+            temperature_label TEXT NOT NULL,
+            temperature_order INTEGER NOT NULL
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_heat_history_customer ON heat_history(customer_id)")
+
     conn.commit()
     conn.close()
 
@@ -162,6 +174,60 @@ def log_action(username: str, action: str, target: str = "", detail: str = ""):
         conn.close()
     except Exception:
         pass  # never let logging crash the app
+
+
+# ── Heat history ──────────────────────────────────────────────────────────────
+
+def record_heat_snapshot(conn, customer_id: int, label: str, order: int):
+    """Record a heat snapshot only when the label has changed from the last entry."""
+    last = conn.execute(
+        "SELECT temperature_label FROM heat_history WHERE customer_id = ? ORDER BY id DESC LIMIT 1",
+        (customer_id,)
+    ).fetchone()
+    if last and last[0] == label:
+        return  # no change — skip
+    conn.execute(
+        "INSERT INTO heat_history (customer_id, ts, temperature_label, temperature_order) VALUES (?,?,?,?)",
+        (customer_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), label, order),
+    )
+
+
+def get_trend_map(conn) -> dict:
+    """Return {customer_id: {direction, from_label, from_ts}} for all customers with history."""
+    rows = conn.execute("""
+        WITH ranked AS (
+            SELECT customer_id, temperature_label, temperature_order, ts,
+                   ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY id DESC) AS rn
+            FROM heat_history
+        )
+        SELECT c.customer_id,
+               c.temperature_label  AS curr_label,
+               c.temperature_order  AS curr_order,
+               p.temperature_label  AS prev_label,
+               p.temperature_order  AS prev_order,
+               p.ts                 AS prev_ts
+        FROM ranked c
+        LEFT JOIN ranked p ON p.customer_id = c.customer_id AND p.rn = 2
+        WHERE c.rn = 1
+    """).fetchall()
+
+    trend_map = {}
+    for r in rows:
+        if r["prev_label"] is None:
+            direction = "new"
+        elif r["curr_order"] < r["prev_order"]:
+            direction = "worse"
+        elif r["curr_order"] > r["prev_order"]:
+            direction = "better"
+        else:
+            direction = "same"
+        trend_map[r["customer_id"]] = {
+            "direction":  direction,
+            "from_label": r["prev_label"] or "",
+            "from_ts":    r["prev_ts"] or "",
+            "curr_label": r["curr_label"],
+        }
+    return trend_map
 
 
 # ── Settings helpers ──────────────────────────────────────────────────────────
@@ -325,6 +391,8 @@ def ingest_fileobj(fileobj):
             ))
             if conn.execute("SELECT changes()").fetchone()[0]:
                 inserted += 1
+                record_heat_snapshot(conn, int(row.get("ID", 0)),
+                                     TEMP_LABEL.get(temp, temp), TEMP_ORDER.get(temp, 99))
                 if TEMP_LABEL.get(temp, "") == "Critical":
                     new_critical.append({
                         "name":    customer_name,
@@ -499,6 +567,7 @@ def dashboard(
     sql += " ORDER BY temperature_order ASC, customer_name ASC"
 
     customers = conn.execute(sql, params).fetchall()
+    trend_map = get_trend_map(conn)
     conn.close()
 
     return templates.TemplateResponse(
@@ -507,7 +576,7 @@ def dashboard(
             "customers": customers, "metrics": metrics, "ams": ams,
             "search": search, "filter_temp": filter_temp,
             "filter_risk": filter_risk, "filter_am": filter_am,
-            "session": session, "msg": msg,
+            "session": session, "msg": msg, "trend_map": trend_map,
         },
     )
 
@@ -580,10 +649,12 @@ def edit_save(
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         customer_id,
     ))
+    temp_label = TEMP_LABEL.get(temperature, temperature)
+    record_heat_snapshot(conn, customer_id, temp_label, TEMP_ORDER.get(temperature, 99))
     conn.commit()
     conn.close()
     log_action(session["username"], "edit_customer", customer_name,
-               f"heat={TEMP_LABEL.get(temperature, temperature)}, at_risk={at_risk}")
+               f"heat={temp_label}, at_risk={at_risk}")
     return RedirectResponse(url="/", status_code=303)
 
 
@@ -938,4 +1009,57 @@ def audit_log_page(request: Request):
     return templates.TemplateResponse(
         request=request, name="audit.html",
         context={"entries": entries, "session": session},
+    )
+
+
+# ── Trends ────────────────────────────────────────────────────────────────────
+
+@app.get("/trends", response_class=HTMLResponse)
+def trends(request: Request):
+    session = get_session(request)
+    if not session:
+        return RedirectResponse(url="/login", status_code=303)
+    conn = get_db()
+
+    # Full heat history with customer info, ordered most recent first
+    rows = conn.execute("""
+        WITH ranked AS (
+            SELECT customer_id, temperature_label, temperature_order, ts,
+                   ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY id DESC) AS rn
+            FROM heat_history
+        )
+        SELECT
+            cu.customer_name, cu.account_manager, cu.sales_engineer, cu.id AS customer_id,
+            curr.temperature_label  AS curr_label,
+            curr.temperature_order  AS curr_order,
+            curr.ts                 AS curr_ts,
+            prev.temperature_label  AS prev_label,
+            prev.temperature_order  AS prev_order,
+            prev.ts                 AS prev_ts
+        FROM customers cu
+        JOIN ranked curr ON curr.customer_id = cu.id AND curr.rn = 1
+        LEFT JOIN ranked prev ON prev.customer_id = cu.id AND prev.rn = 2
+        ORDER BY
+            CASE
+                WHEN prev.temperature_label IS NULL THEN 3
+                WHEN curr.temperature_order < prev.temperature_order THEN 1
+                WHEN curr.temperature_order > prev.temperature_order THEN 2
+                ELSE 4
+            END,
+            cu.customer_name ASC
+    """).fetchall()
+
+    # Summary counts
+    worse  = sum(1 for r in rows if r["prev_label"] and r["curr_order"] < r["prev_order"])
+    better = sum(1 for r in rows if r["prev_label"] and r["curr_order"] > r["prev_order"])
+    new    = sum(1 for r in rows if r["prev_label"] is None)
+    same   = sum(1 for r in rows if r["prev_label"] and r["curr_order"] == r["prev_order"])
+
+    conn.close()
+    return templates.TemplateResponse(
+        request=request, name="trends.html",
+        context={
+            "rows": rows, "session": session,
+            "worse": worse, "better": better, "new": new, "same": same,
+        },
     )
