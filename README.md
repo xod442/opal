@@ -12,6 +12,7 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 - **Metric cards** — clickable counts for Total, Critical, Hot, Concerned, Stable, and At Risk
 - **Detail & edit pages** — full customer record with editable fields and notes
 - **Support page** — focused engagement tracking per customer (state, category, sponsors, status, next actions, get well plan link)
+- **Engagement tracker** — table view of all customers with engagement fields and direct edit links
 - **Executive overview** — at-a-glance summary for leadership and QBRs
 - **Stale records** — top 20 customers longest without an update
 - **Weekly CSV ingest** — upload Microsoft Forms exports; duplicates and Mist rows filtered automatically
@@ -231,6 +232,7 @@ open admin-guide.html
 - [x] Week-over-week trend tracking
 - [x] Bulk user import via CSV
 - [x] Support page with engagement tracking fields
+- [x] Engagement tracker table with direct edit links
 
 ---
 
