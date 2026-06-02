@@ -301,6 +301,77 @@
     {% endif %}
   </div>
 
+  <!-- Email Alerts -->
+  <div class="section">
+    <h2>Email Alerts</h2>
+    <p>Send an email notification when a new Critical customer is ingested via CSV upload. Requires an SMTP server.</p>
+
+    <form method="post" action="/admin/email-settings">
+      <!-- Enable toggle -->
+      <div style="display:flex; align-items:center; gap:12px; margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--border);">
+        <label style="font-size:13px; font-weight:600; color:var(--text);">Enable email alerts</label>
+        <label style="position:relative; display:inline-block; width:42px; height:24px;">
+          <input type="checkbox" name="email_alerts_enabled" value="true"
+                 {% if email_cfg.enabled %}checked{% endif %}
+                 style="opacity:0; width:0; height:0;"
+                 onchange="this.form.submit()">
+          <span style="
+            position:absolute; cursor:pointer; inset:0; border-radius:24px;
+            background:{% if email_cfg.enabled %}var(--green){% else %}var(--surface2){% endif %};
+            border:1px solid var(--border); transition:background 0.2s;
+          "></span>
+        </label>
+        <span style="font-size:12px; color:{% if email_cfg.enabled %}var(--green){% else %}var(--text2){% endif %};">
+          {% if email_cfg.enabled %}Alerts enabled{% else %}Alerts disabled{% endif %}
+        </span>
+      </div>
+
+      <!-- SMTP fields -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); margin-bottom:5px;">SMTP Host</label>
+          <input type="text" name="email_smtp_host" value="{{ email_cfg.host }}" placeholder="smtp.office365.com"
+                 style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none;">
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); margin-bottom:5px;">SMTP Port</label>
+          <input type="text" name="email_smtp_port" value="{{ email_cfg.port }}" placeholder="587"
+                 style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none;">
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); margin-bottom:5px;">Username</label>
+          <input type="text" name="email_username" value="{{ email_cfg.username }}" placeholder="you@company.com"
+                 style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none;">
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); margin-bottom:5px;">Password</label>
+          <input type="password" name="email_password" placeholder="Leave blank to keep current"
+                 style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none;">
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); margin-bottom:5px;">From Address</label>
+          <input type="text" name="email_from" value="{{ email_cfg.from_addr }}" placeholder="opal@company.com (optional)"
+                 style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none;">
+        </div>
+        <div>
+          <label style="display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--text2); margin-bottom:5px;">Send Alerts To</label>
+          <input type="text" name="email_to" value="{{ email_cfg.to_addr }}" placeholder="team@company.com"
+                 style="width:100%; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:8px 10px; color:var(--text); font-size:13px; outline:none;">
+        </div>
+      </div>
+
+      <div style="display:flex; gap:10px; align-items:center;">
+        <button class="btn btn-primary" type="submit">Save settings</button>
+      </div>
+    </form>
+
+    <!-- Test email (separate form) -->
+    <form method="post" action="/admin/email-test" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+      <button class="btn btn-outline" type="submit">Send test email</button>
+      <span style="color:var(--text2); font-size:12px; margin-left:10px;">Sends a test message using the settings above. Save first.</span>
+    </form>
+  </div>
+
   <!-- User Management (admin only) -->
   <div class="section">
     <h2>User Management</h2>

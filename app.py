@@ -7,7 +7,10 @@ import io
 import os
 import secrets
 import shutil
+import smtplib
 import sqlite3
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from datetime import datetime
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -134,6 +137,14 @@ def migrate_db():
         )
     """)
 
+    # settings table (key/value store)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL DEFAULT ''
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -151,6 +162,86 @@ def log_action(username: str, action: str, target: str = "", detail: str = ""):
         conn.close()
     except Exception:
         pass  # never let logging crash the app
+
+
+# ── Settings helpers ──────────────────────────────────────────────────────────
+
+def get_setting(key: str, default: str = "") -> str:
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        row = conn.execute("SELECT value FROM settings WHERE key = ?", (key,)).fetchone()
+        conn.close()
+        return row[0] if row else default
+    except Exception:
+        return default
+
+
+def set_setting(key: str, value: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",
+                 (key, value))
+    conn.commit()
+    conn.close()
+
+
+def get_email_config() -> dict:
+    return {
+        "enabled":   get_setting("email_alerts_enabled") == "true",
+        "host":      get_setting("email_smtp_host"),
+        "port":      int(get_setting("email_smtp_port") or "587"),
+        "username":  get_setting("email_username"),
+        "password":  get_setting("email_password"),
+        "from_addr": get_setting("email_from"),
+        "to_addr":   get_setting("email_to"),
+    }
+
+
+# ── Email helpers ──────────────────────────────────────────────────────────────
+
+def _make_smtp(host: str, port: int):
+    if port == 465:
+        return smtplib.SMTP_SSL(host, port, timeout=10)
+    return smtplib.SMTP(host, port, timeout=10)
+
+
+def _smtp_send(cfg: dict, subject: str, body: str):
+    from_addr = cfg["from_addr"] or cfg["username"]
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"]    = from_addr
+    msg["To"]      = cfg["to_addr"]
+    msg.attach(MIMEText(body, "plain"))
+    with _make_smtp(cfg["host"], cfg["port"]) as smtp:
+        if cfg["port"] != 465:
+            smtp.ehlo()
+            smtp.starttls()
+        smtp.login(cfg["username"], cfg["password"])
+        smtp.sendmail(from_addr, cfg["to_addr"], msg.as_string())
+
+
+def send_alert(subject: str, body: str):
+    """Send an alert email. Silently no-ops if alerts are disabled or misconfigured."""
+    try:
+        cfg = get_email_config()
+        if not cfg["enabled"]:
+            return
+        if not all([cfg["host"], cfg["username"], cfg["password"], cfg["to_addr"]]):
+            return
+        _smtp_send(cfg, subject, body)
+    except Exception:
+        pass  # never let email crash the app
+
+
+def send_test_email():
+    """Send a test email. Raises on failure so the admin sees the error."""
+    cfg = get_email_config()
+    if not all([cfg["host"], cfg["username"], cfg["password"], cfg["to_addr"]]):
+        raise ValueError("Email settings incomplete — fill in SMTP host, username, password, and recipient.")
+    _smtp_send(
+        cfg,
+        "Opal — Test Email",
+        "This is a test email from Opal.\n\nYour SMTP settings are working correctly.",
+    )
 
 
 # ── Backup helpers ────────────────────────────────────────────────────────────
@@ -199,6 +290,7 @@ def ingest_fileobj(fileobj):
             conn.execute(f"ALTER TABLE customers ADD COLUMN {col} TEXT")
 
     inserted = skipped_mist = skipped_dup = 0
+    new_critical = []
     reader = csv.DictReader(fileobj)
     for row in reader:
         arch = row.get(ARCH_COL, "").strip()
@@ -207,6 +299,7 @@ def ingest_fileobj(fileobj):
             continue
         temp = row.get("Customer Temperature", "").strip()
         submission_time = row.get("Start time", "").strip()
+        customer_name = row.get("Customer Name", "").strip()
         try:
             conn.execute("""
                 INSERT OR IGNORE INTO customers (
@@ -219,7 +312,7 @@ def ingest_fileobj(fileobj):
             """, (
                 int(row.get("ID", 0)), submission_time,
                 row.get("Email", "").strip(), row.get("Name", "").strip(),
-                row.get("Customer Name", "").strip(), row.get("Location", "").strip(),
+                customer_name, row.get("Location", "").strip(),
                 row.get("Account Manager", "").strip(), row.get("Sales Engineer", "").strip(),
                 temp, TEMP_LABEL.get(temp, temp), TEMP_ORDER.get(temp, 99),
                 row.get("Is the customer actively at risk?", "").strip(),
@@ -232,13 +325,21 @@ def ingest_fileobj(fileobj):
             ))
             if conn.execute("SELECT changes()").fetchone()[0]:
                 inserted += 1
+                if TEMP_LABEL.get(temp, "") == "Critical":
+                    new_critical.append({
+                        "name":    customer_name,
+                        "am":      row.get("Account Manager", "").strip(),
+                        "se":      row.get("Sales Engineer", "").strip(),
+                        "at_risk": row.get("Is the customer actively at risk?", "").strip(),
+                        "reasons": row.get("Primarily reason for risk", "").strip(),
+                    })
             else:
                 skipped_dup += 1
         except Exception:
             skipped_dup += 1
     conn.commit()
     conn.close()
-    return inserted, skipped_dup, skipped_mist
+    return inserted, skipped_dup, skipped_mist, new_critical
 
 
 # ── Startup ───────────────────────────────────────────────────────────────────
@@ -588,12 +689,14 @@ def admin(request: Request, msg: str = Query("")):
     users = conn.execute("SELECT * FROM users ORDER BY username").fetchall()
     conn.close()
 
+    email_cfg = get_email_config()
     return templates.TemplateResponse(
         request=request, name="admin.html",
         context={
             "backups": list_backups(), "db_size": db_size,
             "record_count": record_count, "db_exists": db_exists,
             "msg": msg, "session": session, "users": users,
+            "email_cfg": email_cfg,
         },
     )
 
@@ -616,10 +719,28 @@ async def admin_upload(request: Request, file: UploadFile = File(...)):
         return RedirectResponse(url="/login", status_code=303)
     content = await file.read()
     text = content.decode("utf-8-sig")
-    inserted, skipped_dup, skipped_mist = ingest_fileobj(io.StringIO(text))
+    inserted, skipped_dup, skipped_mist, new_critical = ingest_fileobj(io.StringIO(text))
     log_action(session["username"], "upload_csv", file.filename,
                f"{inserted} inserted, {skipped_dup} duplicates, {skipped_mist} Mist skipped")
+
+    # Fire email alerts for each new Critical customer
+    for c in new_critical:
+        subject = f"[Opal] New Critical Customer: {c['name']}"
+        body = (
+            f"A new Critical customer has been added to Opal.\n\n"
+            f"Customer:       {c['name']}\n"
+            f"Account Manager:{c['am']}\n"
+            f"Sales Engineer: {c['se']}\n"
+            f"Actively at risk: {c['at_risk']}\n"
+            f"Risk reasons:   {c['reasons']}\n\n"
+            f"View in Opal: http://localhost:9090\n"
+        )
+        send_alert(subject, body)
+        log_action(session["username"], "email_alert", c['name'], "Critical customer alert sent")
+
     msg = f"{inserted}+inserted%2C+{skipped_dup}+duplicates+ignored%2C+{skipped_mist}+Mist+rows+skipped"
+    if new_critical:
+        msg += f"%2C+{len(new_critical)}+Critical+alert{'s' if len(new_critical) > 1 else ''}+sent"
     return RedirectResponse(url=f"/admin?msg={msg}", status_code=303)
 
 
@@ -754,6 +875,52 @@ def admin_reset_password(request: Request, user_id: int):
         url=f"/admin?msg=Temporary+password%3A+{temp_pw}+%E2%80%94+user+must+change+on+next+login",
         status_code=303,
     )
+
+
+# ── Email Settings ────────────────────────────────────────────────────────────
+
+@app.post("/admin/email-settings")
+def admin_email_settings(
+    request: Request,
+    email_alerts_enabled: str = Form("false"),
+    email_smtp_host:      str = Form(""),
+    email_smtp_port:      str = Form("587"),
+    email_username:       str = Form(""),
+    email_password:       str = Form(""),
+    email_from:           str = Form(""),
+    email_to:             str = Form(""),
+):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+    for key, value in [
+        ("email_alerts_enabled", email_alerts_enabled),
+        ("email_smtp_host",      email_smtp_host.strip()),
+        ("email_smtp_port",      email_smtp_port.strip() or "587"),
+        ("email_username",       email_username.strip()),
+        ("email_from",           email_from.strip()),
+        ("email_to",             email_to.strip()),
+    ]:
+        set_setting(key, value)
+    # Only update password if one was provided (blank = keep existing)
+    if email_password:
+        set_setting("email_password", email_password)
+    log_action(session["username"], "update_email_settings", "",
+               f"enabled={email_alerts_enabled}, host={email_smtp_host}, to={email_to}")
+    return RedirectResponse(url="/admin?msg=Email+settings+saved", status_code=303)
+
+
+@app.post("/admin/email-test")
+def admin_email_test(request: Request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+    try:
+        send_test_email()
+        log_action(session["username"], "email_test", "", "Test email sent successfully")
+        return RedirectResponse(url="/admin?msg=Test+email+sent+successfully", status_code=303)
+    except Exception as e:
+        return RedirectResponse(url=f"/admin?msg=Email+error%3A+{str(e)[:120]}", status_code=303)
 
 
 # ── Audit Log ─────────────────────────────────────────────────────────────────
