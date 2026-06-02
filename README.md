@@ -22,7 +22,7 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 - **Email alerts** — automatic email notification when a new Critical customer is ingested
 - **Audit trail** — every database change logged with the user who made it
 - **Auto-backup** — database backed up at 6 AM and 6 PM daily, last 20 backups retained
-- **Admin tools** — manual backup, CSV upload, export, restore, delete database
+- **Admin tools** — manual backup, CSV upload, export, restore, delete database (auto-recreates fresh DB and redirects to login)
 
 ---
 
@@ -100,15 +100,20 @@ docker compose run --rm ingest
 
 ### Resetting to factory defaults
 
-To wipe all data and start over:
+**Option 1 — Via the Admin UI** (container stays running):
+1. Log in as admin and go to **Admin → Delete Database**
+2. Type `DELETE` and confirm
+3. You are redirected to the login page — the database is already recreated
+4. Log in with `admin` / `admin` and set a new password
 
+**Option 2 — Via the command line** (wipes backups too):
 ```bash
 docker compose down
 rm -rf data/
 docker compose up -d
 ```
 
-This deletes the database (all customers, users, and audit logs) and recreates it with the default `admin` account.
+Both options recreate all tables and the default `admin` account automatically.
 
 ---
 

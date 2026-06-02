@@ -276,6 +276,7 @@
   <a class="nav-link" href="#email-alerts">Email Alerts</a>
   <a class="nav-link" href="#backup-restore">Backup &amp; Restore</a>
   <a class="nav-link" href="#export">Exporting Data</a>
+  <a class="nav-link" href="#delete-db">Delete Database</a>
 
   <div class="nav-section">User Management</div>
   <a class="nav-link" href="#user-management">Managing Users</a>
@@ -651,6 +652,37 @@ docker compose run --rm ingest</code></pre>
         <li>Under <strong>Export to CSV</strong>, click <strong>Download CSV</strong>.</li>
         <li>The file downloads as <code>opal_export_YYYYMMDD_HHMMSS.csv</code>.</li>
       </ol>
+    </div>
+  </section>
+
+  <!-- ── Delete Database ── -->
+  <section id="delete-db">
+    <h2>Delete Database</h2>
+    <p>
+      The Delete Database function is available at the bottom of the Admin page. It permanently wipes
+      all customer records, users, audit logs, heat history, and email settings, then immediately
+      recreates a fresh empty database with the default <code>admin</code> account.
+    </p>
+
+    <div class="callout callout-danger">
+      <strong>Irreversible.</strong> All data is permanently deleted. Run a manual backup first if you need to preserve anything.
+    </div>
+
+    <div class="steps-wrap">
+      <ol class="steps">
+        <li>Log in as an admin and click <strong>Admin</strong>.</li>
+        <li>Scroll to <strong>Delete Database</strong> at the bottom of the page.</li>
+        <li>Type <code>DELETE</code> (all caps) in the confirmation field.</li>
+        <li>Click <strong>Delete database</strong>.</li>
+        <li>You are redirected to the login page. Log in with <code>admin</code> / <code>admin</code> and set a new password.</li>
+      </ol>
+    </div>
+
+    <h3>What happens after deletion</h3>
+    <p>Opal immediately recreates the database with all tables and a fresh default admin account. You do not need to restart the container. The action is recorded in the new audit log before the old database is removed.</p>
+
+    <div class="callout callout-note">
+      <strong>Note:</strong> Your session cookie becomes invalid after deletion because it references the old database. Opal redirects you to the login page automatically — log in with <code>admin / admin</code> and you will be prompted to set a new password.
     </div>
   </section>
 
