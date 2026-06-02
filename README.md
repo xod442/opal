@@ -48,6 +48,68 @@ You will be required to change the password on first login.
 
 ---
 
+## Clean Install
+
+These steps walk through a fresh deployment from scratch.
+
+### 1. Prerequisites
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+- Port **9090** available on the host
+
+### 2. Clone and start
+
+```bash
+git clone https://github.com/xod442/opal.git
+cd opal
+docker compose up -d --build
+```
+
+The container will:
+- Pull the Python 3.12 base image and install dependencies
+- Create `./data/opal.db` with all tables on first startup
+- Start the web server on port 9090
+
+### 3. First login
+
+1. Open **http://localhost:9090**
+2. Log in with `admin` / `admin`
+3. You will be redirected to a forced password change — set a strong password and continue
+4. The dashboard will load (empty until a CSV is ingested)
+
+### 4. Ingest your first CSV
+
+Upload a Microsoft Forms export via **Admin → Upload CSV**, or use the command line:
+
+```bash
+mkdir -p csv
+cp ~/Downloads/engagement.csv csv/
+docker compose run --rm ingest
+```
+
+### 5. Verify everything is working
+
+| Check | Expected |
+|---|---|
+| `docker compose ps` | `opal` container status **Up** |
+| `docker compose logs` | No errors, `Application startup complete` |
+| http://localhost:9090/login | Login page loads |
+| Login with new password | Redirects to dashboard |
+| Admin page | CSV upload, user management, email settings visible |
+
+### Resetting to factory defaults
+
+To wipe all data and start over:
+
+```bash
+docker compose down
+rm -rf data/
+docker compose up -d
+```
+
+This deletes the database (all customers, users, and audit logs) and recreates it with the default `admin` account.
+
+---
+
 ## Ingesting CSV Data
 
 ### Via the Admin UI (recommended)
