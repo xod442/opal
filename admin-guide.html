@@ -667,6 +667,44 @@ docker compose run --rm ingest</code></pre>
       </ol>
     </div>
 
+    <h3>Bulk importing users from CSV</h3>
+    <p>
+      To create multiple accounts at once, upload a CSV file from the <strong>Bulk Import via CSV</strong>
+      section of the User Management page.
+    </p>
+
+    <h4 style="font-size:13px; font-weight:700; color:var(--text); margin:16px 0 8px;">CSV format</h4>
+    <pre><code>username,email,password,role
+jdoe,jdoe@example.com,TempPass1!,user
+sjones,sjones@example.com,TempPass2!,user
+bsmith,bsmith@example.com,TempPass3!,admin</code></pre>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>username</code></td><td>Yes</td><td>Must be unique — rows with duplicate usernames are skipped</td></tr>
+          <tr><td><code>email</code></td><td>No</td><td>Optional; leave blank if not needed</td></tr>
+          <tr><td><code>password</code></td><td>Yes</td><td>Temporary password — user must change it on first login</td></tr>
+          <tr><td><code>role</code></td><td>No</td><td><code>user</code> or <code>admin</code>; defaults to <code>user</code> if blank or invalid</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="steps-wrap">
+      <ol class="steps">
+        <li>Go to <strong>Admin → User Management</strong>.</li>
+        <li>Click the <strong>example_users.csv</strong> link to download a template, or prepare your own file in the format above.</li>
+        <li>Under <strong>Bulk Import via CSV</strong>, click <strong>Choose File</strong> and select your CSV.</li>
+        <li>Click <strong>Import users</strong>.</li>
+        <li>The confirmation banner reports how many accounts were created, how many were skipped (duplicate username), and how many rows had errors (missing username or password).</li>
+      </ol>
+    </div>
+
+    <div class="callout callout-note">
+      <strong>Safe to re-run.</strong> Re-uploading the same CSV is harmless — existing usernames are silently skipped, so no duplicates are created.
+    </div>
+
     <h3>Disabling / enabling a user</h3>
     <p>
       Click <strong>Disable</strong> next to the user in the User Management table. Disabled users cannot log in.
