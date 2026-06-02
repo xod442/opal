@@ -15,7 +15,7 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 - **Stale records** — top 20 customers longest without an update
 - **Weekly CSV ingest** — upload Microsoft Forms exports; duplicates and Mist rows filtered automatically
 - **Secure login** — bcrypt passwords, signed session cookies, forced password change on first login
-- **User management** — create users, enable/disable accounts, reset passwords (admin only)
+- **User management** — create users, bulk import via CSV, enable/disable accounts, reset passwords (admin only)
 - **Trend tracking** — week-over-week heat movement with dashboard indicators and a dedicated trends page
 - **Email alerts** — automatic email notification when a new Critical customer is ingested
 - **Audit trail** — every database change logged with the user who made it
@@ -131,6 +131,29 @@ docker compose run --rm ingest
 
 ---
 
+## User Management
+
+### Creating users one at a time
+Go to **Admin → User Management**, fill in the username, email, temporary password, and role, then click **Create user**. New users are required to change their password on first login.
+
+### Bulk importing users via CSV
+1. Download `example_users.csv` from the **Bulk Import** section of the Admin page (or use the file in the repo)
+2. Edit the file with your users — columns are `username`, `email`, `password`, `role`
+3. Go to **Admin → User Management → Bulk Import via CSV**, choose the file, and click **Import users**
+4. The confirmation banner reports how many were created, skipped (duplicate username), or had errors
+
+**CSV format:**
+```csv
+username,email,password,role
+jdoe,jdoe@example.com,TempPass1!,user
+bsmith,bsmith@example.com,TempPass2!,admin
+```
+
+- `role` defaults to `user` if blank or omitted
+- Re-uploading the same file is safe — duplicate usernames are skipped
+
+---
+
 ## Docker Commands
 
 | Command | Description |
@@ -167,6 +190,7 @@ opal/
 ├── Dockerfile
 ├── docker-compose.yaml
 ├── admin-guide.html        # Full administrator guide (open in browser)
+├── example_users.csv       # Template for bulk user import
 ├── voiceover-script.md     # Voiceover script for intro video
 └── templates/
     ├── dashboard.html
@@ -204,6 +228,7 @@ open admin-guide.html
 - [x] Audit trail
 - [x] Email alerts for new Critical customers
 - [x] Week-over-week trend tracking
+- [x] Bulk user import via CSV
 
 ---
 
