@@ -272,6 +272,7 @@
   <div class="nav-section">Operations</div>
   <a class="nav-link" href="#starting-stopping">Starting &amp; Stopping</a>
   <a class="nav-link" href="#ingest">Ingesting CSV Data</a>
+  <a class="nav-link" href="#email-alerts">Email Alerts</a>
   <a class="nav-link" href="#backup-restore">Backup &amp; Restore</a>
   <a class="nav-link" href="#export">Exporting Data</a>
 
@@ -314,6 +315,7 @@
       <li>Executive overview with regional breakdown</li>
       <li>Stale record detection (top 20 longest without an update)</li>
       <li>Secure login with role-based access (admin / user)</li>
+      <li>Email alerts when a new Critical customer is ingested</li>
       <li>Full audit trail of every database change</li>
       <li>Automated backups twice daily (6 AM and 6 PM)</li>
     </ul>
@@ -471,6 +473,79 @@ docker compose run --rm ingest</code></pre>
             <td><strong>Encoding</strong></td>
             <td>Microsoft Forms exports with a UTF-8 BOM (<code>utf-8-sig</code>). Opal handles this automatically.</td>
           </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── Email Alerts ── -->
+  <section id="email-alerts">
+    <h2>Email Alerts</h2>
+    <p>
+      Opal can send an email notification whenever a new <strong>Critical</strong> customer is added
+      during a CSV ingest. Alerts are delivered immediately after the upload completes.
+    </p>
+
+    <h3>Configuring SMTP</h3>
+    <div class="steps-wrap">
+      <ol class="steps">
+        <li>Log in as an admin and click <strong>Admin</strong>.</li>
+        <li>Under <strong>Email Alerts</strong>, fill in your SMTP settings (see table below).</li>
+        <li>Click <strong>Save settings</strong>.</li>
+        <li>Click <strong>Send test email</strong> to verify the settings work before enabling alerts.</li>
+        <li>Check the <strong>Enable email alerts</strong> toggle and save again.</li>
+      </ol>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Example</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SMTP Host</strong></td><td><code>smtp.office365.com</code></td><td>Your mail server hostname</td></tr>
+          <tr><td><strong>SMTP Port</strong></td><td><code>587</code></td><td>587 = STARTTLS (default), 465 = SSL</td></tr>
+          <tr><td><strong>Username</strong></td><td><code>you@company.com</code></td><td>SMTP login username</td></tr>
+          <tr><td><strong>Password</strong></td><td><em>your password</em></td><td>Leave blank on save to keep the existing password</td></tr>
+          <tr><td><strong>From Address</strong></td><td><code>opal@company.com</code></td><td>Optional — defaults to username if left blank</td></tr>
+          <tr><td><strong>Send Alerts To</strong></td><td><code>team@company.com</code></td><td>Recipient email address</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>What the alert contains</h3>
+    <p>Each alert email includes:</p>
+    <ul>
+      <li>Customer name</li>
+      <li>Account Manager</li>
+      <li>Sales Engineer</li>
+      <li>Actively at risk status</li>
+      <li>Risk reasons</li>
+      <li>Link to the Opal dashboard</li>
+    </ul>
+    <p>
+      If multiple new Critical customers are in a single CSV upload, a separate email is sent for each one.
+      The ingest confirmation banner shows how many alerts were sent.
+    </p>
+
+    <div class="callout callout-note">
+      <strong>Note:</strong> Alert emails are only sent for <em>newly inserted</em> Critical customers.
+      Re-ingesting a CSV with existing records does not re-trigger alerts. Changing a customer's heat
+      level to Critical via the Edit page does not currently trigger an alert.
+    </div>
+
+    <h3>Disabling alerts</h3>
+    <p>
+      Uncheck the <strong>Enable email alerts</strong> toggle and save. SMTP settings are retained so
+      you can re-enable without re-entering credentials.
+    </p>
+
+    <h3>Common SMTP providers</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Provider</th><th>Host</th><th>Port</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Office 365</strong></td><td><code>smtp.office365.com</code></td><td>587</td></tr>
+          <tr><td><strong>Gmail</strong></td><td><code>smtp.gmail.com</code></td><td>587</td></tr>
+          <tr><td><strong>HPE internal</strong></td><td>Contact your IT team</td><td>587 or 465</td></tr>
         </tbody>
       </table>
     </div>
@@ -763,6 +838,18 @@ docker compose run --rm ingest</code></pre>
       </table>
     </div>
 
+    <h3>settings table</h3>
+    <p>Key/value store for application configuration (email SMTP settings, alert toggle).</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Column</th><th>Type</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>key</code></td><td>TEXT PK</td><td>Setting name (e.g. <code>email_smtp_host</code>)</td></tr>
+          <tr><td><code>value</code></td><td>TEXT</td><td>Setting value</td></tr>
+        </tbody>
+      </table>
+    </div>
+
     <h3>audit_log table</h3>
     <div class="tbl-wrap">
       <table>
@@ -869,6 +956,17 @@ docker compose up -d</code></pre>
       If the container was restarted just before the scheduled time, it may have missed the window.
       Use <strong>Admin → Run backup now</strong> to create a manual backup at any time.
     </p>
+
+    <h3>Test email fails</h3>
+    <p>
+      The error message from the SMTP server is shown in the admin banner. Common causes:
+    </p>
+    <ul>
+      <li><strong>Authentication failed</strong> — double-check username and password. For Office 365, use your full email address as the username.</li>
+      <li><strong>Connection timed out</strong> — the SMTP host or port is wrong, or a firewall is blocking outbound SMTP. Try port 465 if 587 is blocked.</li>
+      <li><strong>Settings incomplete</strong> — host, username, password, and recipient are all required. Save settings before clicking Send test email.</li>
+    </ul>
+    <p>All test email attempts and results are recorded in the Audit Log.</p>
 
     <h3>Session keeps expiring</h3>
     <p>
