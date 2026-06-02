@@ -703,6 +703,24 @@ def edit_save(
     return RedirectResponse(url="/", status_code=303)
 
 
+# ── Engagement Tracker ────────────────────────────────────────────────────────
+
+@app.get("/engagement", response_class=HTMLResponse)
+def engagement(request: Request):
+    session = get_session(request)
+    if not session:
+        return RedirectResponse(url="/login", status_code=303)
+    conn = get_db()
+    customers = conn.execute(
+        "SELECT * FROM customers ORDER BY temperature_order, customer_name"
+    ).fetchall()
+    conn.close()
+    return templates.TemplateResponse(
+        request=request, name="engagement.html",
+        context={"customers": customers, "session": session},
+    )
+
+
 # ── Support page ──────────────────────────────────────────────────────────────
 
 @app.get("/customer/{customer_id}/support", response_class=HTMLResponse)
