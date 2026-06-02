@@ -88,7 +88,6 @@
       <thead>
         <tr>
           <th>Customer</th>
-          <th>Heat</th>
           <th>Account Manager</th>
           <th>State</th>
           <th>Category</th>
@@ -104,7 +103,6 @@
         {% for c in customers %}
         <tr>
           <td><strong>{{ c.customer_name }}</strong></td>
-          <td><span class="badge badge-{{ c.temperature_label }}">{{ c.temperature_label }}</span></td>
           <td style="color:var(--text2); font-size:13px;">{{ c.account_manager or '—' }}</td>
           <td style="font-size:13px;">{% if c.state %}{{ c.state }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
           <td style="font-size:13px;">{% if c.category %}{{ c.category }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
@@ -124,7 +122,7 @@
           <td><a class="btn-edit" href="/customer/{{ c.id }}/support">Edit</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="11" class="empty">No customers found. Ingest a CSV to get started.</td></tr>
+        <tr><td colspan="10" class="empty">No customers found. Ingest a CSV to get started.</td></tr>
         {% endfor %}
       </tbody>
     </table>
