@@ -284,6 +284,7 @@
   <div class="nav-section">Dashboard</div>
   <a class="nav-link" href="#dashboard">Main Dashboard</a>
   <a class="nav-link" href="#detail-edit">Detail &amp; Edit</a>
+  <a class="nav-link" href="#support">Support Page</a>
   <a class="nav-link" href="#executive">Executive View</a>
   <a class="nav-link" href="#trends">Trend Tracker</a>
   <a class="nav-link" href="#stale">Stale Records</a>
@@ -802,7 +803,51 @@ bsmith,bsmith@example.com,TempPass3!,admin</code></pre>
       <li><strong>Read-only fields</strong> — Account Manager, Sales Engineer, Location, Submitted by, Submission date, and Customer Name. These come from the original form submission and cannot be changed.</li>
       <li><strong>Editable fields</strong> — Customer Temperature, Actively at risk, Risk reasons, Architecture, Near term goals, BU contact, Ask from business unit, Background, and Additional Notes.</li>
     </ul>
-    <p>Click <strong>Save changes</strong> to commit and return to the dashboard. Every save is recorded in the Audit Log.</p>
+    <p>Click <strong>Save changes</strong> to commit and return to the dashboard. Click <strong>Support</strong> to open the Support page for this customer. Every save is recorded in the Audit Log.</p>
+  </section>
+
+  <!-- ── Support Page ── -->
+  <section id="support">
+    <h2>Support Page</h2>
+    <p>
+      The Support page is accessed via the <strong>Support</strong> button on the Edit page. It provides
+      a focused view for tracking active engagement with a customer — separate from the core heat and risk
+      fields so that support teams can update their fields without touching the original survey data.
+    </p>
+
+    <h3>Layout</h3>
+    <p>The Support page mirrors the Edit page structure:</p>
+    <ul>
+      <li><strong>Read-only fields</strong> — Account Manager, Sales Engineer, Location, Submitted by, and Submission date (same as the Edit page).</li>
+      <li><strong>Engagement Tracking fields</strong> — the seven manually tracked fields described below.</li>
+    </ul>
+
+    <h3>Engagement Tracking fields</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><strong>State</strong></td><td>Text</td><td>Current engagement state (e.g. Active, On Hold, Resolved)</td></tr>
+          <tr><td><strong>Category</strong></td><td>Text</td><td>Issue category or classification</td></tr>
+          <tr><td><strong>BU PLM Sponsor</strong></td><td>Text</td><td>Business unit Product Line Manager sponsoring this engagement</td></tr>
+          <tr><td><strong>BU TME Sponsor</strong></td><td>Text</td><td>Business unit Technical Marketing Engineer sponsoring this engagement</td></tr>
+          <tr><td><strong>Current Status</strong></td><td>Text</td><td>One-line summary of where things stand right now</td></tr>
+          <tr><td><strong>Next Actions</strong></td><td>Multi-line text</td><td>Action items, owners, and timelines — supports multiple lines</td></tr>
+          <tr><td><strong>Get Well Plan</strong></td><td>Link (URL)</td><td>URL to the external get-well plan document; rendered as a clickable link on the detail page</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout callout-note">
+      <strong>Note:</strong> All seven fields are empty when a customer is first ingested. They are populated manually via the Support page and are never overwritten by re-ingesting the CSV.
+    </div>
+
+    <h3>Saving</h3>
+    <p>
+      Click <strong>Save changes</strong> to commit the engagement fields and return to the customer detail page.
+      The save is recorded in the Audit Log under the action <code>edit_support</code>, including the State and Category values at the time of save.
+      Click <strong>Cancel</strong> or <strong>← Back to edit</strong> to discard changes.
+    </p>
   </section>
 
   <!-- ── Executive View ── -->
