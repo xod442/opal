@@ -93,14 +93,37 @@ def migrate_db():
     os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
 
-    # customers table migrations (only if table already exists — ingest.py creates it)
+    # customers table — create if missing, then apply any column migrations
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS customers (
+            id                  INTEGER PRIMARY KEY,
+            submission_time     TEXT,
+            email               TEXT,
+            submitter_name      TEXT,
+            customer_name       TEXT,
+            location            TEXT,
+            account_manager     TEXT,
+            sales_engineer      TEXT,
+            temperature         TEXT,
+            temperature_label   TEXT,
+            temperature_order   INTEGER,
+            at_risk             TEXT,
+            risk_reasons        TEXT,
+            architecture        TEXT,
+            near_term_goals     TEXT,
+            bu_contact          TEXT,
+            ask_from_bu         TEXT,
+            background          TEXT,
+            last_modified       TEXT,
+            notes               TEXT
+        )
+    """)
     cols = [r[1] for r in conn.execute("PRAGMA table_info(customers)").fetchall()]
-    if cols:
-        if "last_modified" not in cols:
-            conn.execute("ALTER TABLE customers ADD COLUMN last_modified TEXT")
-            conn.execute("UPDATE customers SET last_modified = submission_time WHERE last_modified IS NULL")
-        if "notes" not in cols:
-            conn.execute("ALTER TABLE customers ADD COLUMN notes TEXT")
+    if "last_modified" not in cols:
+        conn.execute("ALTER TABLE customers ADD COLUMN last_modified TEXT")
+        conn.execute("UPDATE customers SET last_modified = submission_time WHERE last_modified IS NULL")
+    if "notes" not in cols:
+        conn.execute("ALTER TABLE customers ADD COLUMN notes TEXT")
 
     # users table
     conn.execute("""
