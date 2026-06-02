@@ -931,6 +931,60 @@ def admin_user_create(
     return RedirectResponse(url=f"/admin?msg={msg}", status_code=303)
 
 
+@app.get("/admin/users/example-csv")
+def admin_users_example_csv(request: Request):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+    content = "username,email,password,role\njdoe,jdoe@example.com,TempPass1!,user\nsjones,sjones@example.com,TempPass2!,user\nbsmith,bsmith@example.com,TempPass3!,admin\n"
+    return StreamingResponse(
+        io.BytesIO(content.encode()),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=example_users.csv"},
+    )
+
+
+@app.post("/admin/users/import")
+def admin_user_import(request: Request, file: UploadFile = File(...)):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+
+    created = skipped = errors = 0
+    try:
+        content = file.file.read().decode("utf-8-sig")
+        reader = csv.DictReader(io.StringIO(content))
+        conn = get_db()
+        for row in reader:
+            username = (row.get("username") or "").strip()
+            email    = (row.get("email") or "").strip()
+            password = (row.get("password") or "").strip()
+            role     = (row.get("role") or "user").strip().lower()
+            if not username or not password:
+                errors += 1
+                continue
+            if role not in ("admin", "user"):
+                role = "user"
+            try:
+                conn.execute("""
+                    INSERT INTO users (username, email, password_hash, role, is_active,
+                                       must_change_password, created_at)
+                    VALUES (?, ?, ?, ?, 1, 1, ?)
+                """, (username, email, pwd_ctx.hash(password), role, datetime.now().isoformat()))
+                created += 1
+            except sqlite3.IntegrityError:
+                skipped += 1
+        conn.commit()
+        conn.close()
+        log_action(session["username"], "import_users", file.filename,
+                   f"created={created} skipped={skipped} errors={errors}")
+    except Exception as e:
+        return RedirectResponse(url=f"/admin?msg=Import+failed:+{e}", status_code=303)
+
+    msg = f"Import+complete:+{created}+created,+{skipped}+skipped+(duplicate),+{errors}+errors"
+    return RedirectResponse(url=f"/admin?msg={msg}", status_code=303)
+
+
 @app.post("/admin/users/{user_id}/toggle")
 def admin_user_toggle(request: Request, user_id: int):
     session = get_session(request)

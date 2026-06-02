@@ -430,6 +430,18 @@
         <span style="color:var(--text2); font-size:12px; margin-left:10px;">New users must change their password on first login.</span>
       </div>
     </form>
+
+    <!-- Bulk import users -->
+    <h3 style="margin-top:28px; margin-bottom:10px; font-size:14px; color:var(--accent);">Bulk Import via CSV</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px;">
+      Upload a CSV with columns: <code>username</code>, <code>email</code>, <code>password</code>, <code>role</code>.
+      Existing usernames are skipped. All imported users must change their password on first login.
+      Download <a href="/admin/users/example-csv" style="color:var(--accent);">example_users.csv</a> for the correct format.
+    </p>
+    <form method="post" action="/admin/users/import" enctype="multipart/form-data" style="display:flex; gap:10px; align-items:center;">
+      <input type="file" name="file" accept=".csv" required style="color:var(--text2); font-size:13px;">
+      <button class="btn btn-primary" type="submit">Import users</button>
+    </form>
   </div>
 
   <!-- Delete database -->
