@@ -975,7 +975,8 @@ def admin_delete_db(request: Request, confirm: str = Form("")):
     log_action(session["username"], "delete_db", "opal.db", "Database permanently deleted")
     if os.path.exists(DB_PATH):
         os.remove(DB_PATH)
-    return RedirectResponse(url="/admin?msg=Database+deleted", status_code=303)
+    migrate_db()
+    return RedirectResponse(url="/login?msg=Database+deleted.+Please+log+in+again", status_code=303)
 
 
 @app.post("/admin/restore/{filename}")
