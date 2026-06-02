@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edit {{ c.customer_name }} — Opal</title>
+<title>Support — {{ c.customer_name }} — Opal</title>
 <style>
   :root {
     --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a; --border: #2e3350;
@@ -58,9 +58,7 @@
   }
   .field .value { color: var(--text2); font-size: 14px; }
 
-  /* Editable inputs */
   .field input[type="text"],
-  .field select,
   .field textarea {
     width: 100%;
     background: var(--surface2);
@@ -75,14 +73,21 @@
     resize: vertical;
   }
   .field input[type="text"]:focus,
-  .field select:focus,
-  .field textarea:focus {
-    border-color: var(--accent);
-  }
+  .field textarea:focus { border-color: var(--accent); }
   .field textarea { min-height: 90px; }
 
-  /* Heat select colors */
-  option { background: var(--surface2); }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    margin-left: 8px;
+  }
+  .badge-Critical  { background: rgba(239,68,68,0.15);  color: var(--critical); }
+  .badge-Hot       { background: rgba(249,115,22,0.15); color: var(--hot); }
+  .badge-Concerned { background: rgba(234,179,8,0.15);  color: var(--concerned); }
+  .badge-Stable    { background: rgba(34,197,94,0.15);  color: var(--stable); }
 
   .actions {
     display: flex;
@@ -117,32 +122,18 @@
     transition: color 0.15s;
   }
   .btn-cancel:hover { color: var(--text); }
-
-  /* Heat badge inline */
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    margin-left: 8px;
-  }
-  .badge-Critical  { background: rgba(239,68,68,0.15);  color: var(--critical); }
-  .badge-Hot       { background: rgba(249,115,22,0.15); color: var(--hot); }
-  .badge-Concerned { background: rgba(234,179,8,0.15);  color: var(--concerned); }
-  .badge-Stable    { background: rgba(34,197,94,0.15);  color: var(--stable); }
 </style>
 </head>
 <body>
 
 <header>
-  <a href="/customer/{{ c.id }}">← Back to details</a>
-  <h1>Edit — {{ c.customer_name }}</h1>
+  <a href="/customer/{{ c.id }}/edit">← Back to edit</a>
+  <h1>Support — {{ c.customer_name }}</h1>
   <span class="badge badge-{{ c.temperature_label }}">{{ c.temperature_label }}</span>
 </header>
 
 <div class="container">
-<form method="post" action="/customer/{{ c.id }}/edit">
+<form method="post" action="/customer/{{ c.id }}/support">
 
   <!-- Read-only fields -->
   <div class="section-label">Read-only fields</div>
@@ -167,75 +158,6 @@
       <span class="label">Submission date</span>
       <div class="value">{{ c.submission_time or '—' }}</div>
     </div>
-  </div>
-
-  <!-- Editable fields -->
-  <div class="section-label">Editable fields</div>
-  <div class="grid">
-
-    <div class="field">
-      <span class="label">Customer Name</span>
-      <div class="value">{{ c.customer_name }}</div>
-      <input type="hidden" name="customer_name" value="{{ c.customer_name }}">
-    </div>
-
-    <div class="field">
-      <label class="label" for="temperature">Customer Temperature</label>
-      <select id="temperature" name="temperature">
-        {% for opt in temp_options %}
-        <option value="{{ opt }}" {% if c.temperature == opt %}selected{% endif %}>{{ opt }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="field full">
-      <label class="label" for="at_risk">Actively at risk?</label>
-      <select id="at_risk" name="at_risk">
-        {% for opt in [
-          'Yes – actively evaluating other vendors',
-          'No – unhappy but not leaving',
-          'Not sure'
-        ] %}
-        <option value="{{ opt }}" {% if c.at_risk == opt %}selected{% endif %}>{{ opt }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div class="field full">
-      <label class="label" for="risk_reasons">Risk reasons</label>
-      <input type="text" id="risk_reasons" name="risk_reasons" value="{{ c.risk_reasons or '' }}">
-    </div>
-
-    <div class="field full">
-      <label class="label" for="architecture">Current deployed architecture</label>
-      <textarea id="architecture" name="architecture">{{ c.architecture or '' }}</textarea>
-    </div>
-
-    <div class="field full">
-      <label class="label" for="near_term_goals">Near term goals</label>
-      <textarea id="near_term_goals" name="near_term_goals">{{ c.near_term_goals or '' }}</textarea>
-    </div>
-
-    <div class="field">
-      <label class="label" for="bu_contact">BU contact</label>
-      <input type="text" id="bu_contact" name="bu_contact" value="{{ c.bu_contact or '' }}">
-    </div>
-
-    <div class="field">
-      <label class="label" for="ask_from_bu">Ask from business unit</label>
-      <input type="text" id="ask_from_bu" name="ask_from_bu" value="{{ c.ask_from_bu or '' }}">
-    </div>
-
-    <div class="field full">
-      <label class="label" for="background">Background</label>
-      <textarea id="background" name="background">{{ c.background or '' }}</textarea>
-    </div>
-
-    <div class="field full" style="border-color: rgba(79,156,249,0.3);">
-      <label class="label" for="notes" style="color:var(--accent)">Additional Notes</label>
-      <textarea id="notes" name="notes" style="min-height:120px;">{{ c.notes or '' }}</textarea>
-    </div>
-
   </div>
 
   <!-- Engagement Tracking fields -->
@@ -281,8 +203,7 @@
 
   <div class="actions">
     <button type="submit" class="btn-save">Save changes</button>
-    <a href="/customer/{{ c.id }}/support" class="btn-cancel" style="border-color:rgba(79,156,249,0.4); color:var(--accent);">Support</a>
-    <a href="/customer/{{ c.id }}" class="btn-cancel">Cancel</a>
+    <a href="/customer/{{ c.id }}/edit" class="btn-cancel">Cancel</a>
   </div>
 
 </form>

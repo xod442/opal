@@ -703,6 +703,58 @@ def edit_save(
     return RedirectResponse(url="/", status_code=303)
 
 
+# ── Support page ──────────────────────────────────────────────────────────────
+
+@app.get("/customer/{customer_id}/support", response_class=HTMLResponse)
+def support_form(request: Request, customer_id: int):
+    session = get_session(request)
+    if not session:
+        return RedirectResponse(url="/login", status_code=303)
+    conn = get_db()
+    customer = conn.execute("SELECT * FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    conn.close()
+    if not customer:
+        return HTMLResponse("Not found", status_code=404)
+    return templates.TemplateResponse(
+        request=request, name="support.html",
+        context={"c": customer, "session": session},
+    )
+
+
+@app.post("/customer/{customer_id}/support")
+def support_save(
+    request: Request,
+    customer_id: int,
+    state: str = Form(""),
+    category: str = Form(""),
+    bu_plm_sponsor: str = Form(""),
+    bu_tme_sponsor: str = Form(""),
+    current_status: str = Form(""),
+    next_actions: str = Form(""),
+    get_well_plan: str = Form(""),
+):
+    session = get_session(request)
+    if not session:
+        return RedirectResponse(url="/login", status_code=303)
+    conn = get_db()
+    customer = conn.execute("SELECT customer_name FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    conn.execute("""
+        UPDATE customers SET
+            state=?, category=?, bu_plm_sponsor=?, bu_tme_sponsor=?,
+            current_status=?, next_actions=?, get_well_plan=?, last_modified=?
+        WHERE id=?
+    """, (state, category, bu_plm_sponsor, bu_tme_sponsor,
+          current_status, next_actions, get_well_plan,
+          datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+          customer_id))
+    conn.commit()
+    conn.close()
+    if customer:
+        log_action(session["username"], "edit_support", customer["customer_name"],
+                   f"state={state}, category={category}")
+    return RedirectResponse(url=f"/customer/{customer_id}", status_code=303)
+
+
 # ── Stale Records ─────────────────────────────────────────────────────────────
 
 @app.get("/stale", response_class=HTMLResponse)
