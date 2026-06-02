@@ -115,7 +115,14 @@ def migrate_db():
             ask_from_bu         TEXT,
             background          TEXT,
             last_modified       TEXT,
-            notes               TEXT
+            notes               TEXT,
+            state               TEXT,
+            category            TEXT,
+            bu_plm_sponsor      TEXT,
+            bu_tme_sponsor      TEXT,
+            current_status      TEXT,
+            next_actions        TEXT,
+            get_well_plan       TEXT
         )
     """)
     cols = [r[1] for r in conn.execute("PRAGMA table_info(customers)").fetchall()]
@@ -124,6 +131,10 @@ def migrate_db():
         conn.execute("UPDATE customers SET last_modified = submission_time WHERE last_modified IS NULL")
     if "notes" not in cols:
         conn.execute("ALTER TABLE customers ADD COLUMN notes TEXT")
+    for col in ("state", "category", "bu_plm_sponsor", "bu_tme_sponsor",
+                "current_status", "next_actions", "get_well_plan"):
+        if col not in cols:
+            conn.execute(f"ALTER TABLE customers ADD COLUMN {col} TEXT")
 
     # users table
     conn.execute("""
@@ -652,6 +663,13 @@ def edit_save(
     ask_from_bu: str = Form(""),
     background: str = Form(""),
     notes: str = Form(""),
+    state: str = Form(""),
+    category: str = Form(""),
+    bu_plm_sponsor: str = Form(""),
+    bu_tme_sponsor: str = Form(""),
+    current_status: str = Form(""),
+    next_actions: str = Form(""),
+    get_well_plan: str = Form(""),
 ):
     session = get_session(request)
     if not session:
@@ -661,7 +679,9 @@ def edit_save(
         UPDATE customers SET
             customer_name=?, temperature=?, temperature_label=?, temperature_order=?,
             at_risk=?, risk_reasons=?, architecture=?, near_term_goals=?,
-            bu_contact=?, ask_from_bu=?, background=?, notes=?, last_modified=?
+            bu_contact=?, ask_from_bu=?, background=?, notes=?, last_modified=?,
+            state=?, category=?, bu_plm_sponsor=?, bu_tme_sponsor=?,
+            current_status=?, next_actions=?, get_well_plan=?
         WHERE id=?
     """, (
         customer_name, temperature,
@@ -670,6 +690,8 @@ def edit_save(
         at_risk, risk_reasons, architecture, near_term_goals,
         bu_contact, ask_from_bu, background, notes,
         datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        state, category, bu_plm_sponsor, bu_tme_sponsor,
+        current_status, next_actions, get_well_plan,
         customer_id,
     ))
     temp_label = TEMP_LABEL.get(temperature, temperature)

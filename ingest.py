@@ -53,9 +53,23 @@ def init_db(conn):
             near_term_goals     TEXT,
             bu_contact          TEXT,
             ask_from_bu         TEXT,
-            background          TEXT
+            background          TEXT,
+            last_modified       TEXT,
+            notes               TEXT,
+            state               TEXT,
+            category            TEXT,
+            bu_plm_sponsor      TEXT,
+            bu_tme_sponsor      TEXT,
+            current_status      TEXT,
+            next_actions        TEXT,
+            get_well_plan       TEXT
         )
     """)
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(customers)").fetchall()]
+    for col in ("last_modified", "notes", "state", "category", "bu_plm_sponsor",
+                "bu_tme_sponsor", "current_status", "next_actions", "get_well_plan"):
+        if col not in cols:
+            conn.execute(f"ALTER TABLE customers ADD COLUMN {col} TEXT")
     conn.commit()
 
 

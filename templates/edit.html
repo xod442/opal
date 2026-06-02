@@ -238,6 +238,47 @@
 
   </div>
 
+  <!-- Engagement Tracking fields -->
+  <div class="section-label">Engagement Tracking</div>
+  <div class="grid">
+
+    <div class="field">
+      <label class="label" for="state">State</label>
+      <input type="text" id="state" name="state" value="{{ c.state or '' }}">
+    </div>
+
+    <div class="field">
+      <label class="label" for="category">Category</label>
+      <input type="text" id="category" name="category" value="{{ c.category or '' }}">
+    </div>
+
+    <div class="field">
+      <label class="label" for="bu_plm_sponsor">BU PLM Sponsor</label>
+      <input type="text" id="bu_plm_sponsor" name="bu_plm_sponsor" value="{{ c.bu_plm_sponsor or '' }}">
+    </div>
+
+    <div class="field">
+      <label class="label" for="bu_tme_sponsor">BU TME Sponsor</label>
+      <input type="text" id="bu_tme_sponsor" name="bu_tme_sponsor" value="{{ c.bu_tme_sponsor or '' }}">
+    </div>
+
+    <div class="field full">
+      <label class="label" for="current_status">Current Status</label>
+      <input type="text" id="current_status" name="current_status" value="{{ c.current_status or '' }}">
+    </div>
+
+    <div class="field full">
+      <label class="label" for="next_actions">Next Actions</label>
+      <textarea id="next_actions" name="next_actions" style="min-height:120px;">{{ c.next_actions or '' }}</textarea>
+    </div>
+
+    <div class="field full">
+      <label class="label" for="get_well_plan">Get Well Plan</label>
+      <input type="text" id="get_well_plan" name="get_well_plan" placeholder="https://..." value="{{ c.get_well_plan or '' }}">
+    </div>
+
+  </div>
+
   <div class="actions">
     <button type="submit" class="btn-save">Save changes</button>
     <a href="/customer/{{ c.id }}" class="btn-cancel">Cancel</a>
