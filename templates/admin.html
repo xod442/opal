@@ -272,6 +272,19 @@
     </form>
   </div>
 
+  <!-- Upload Engagement CSV -->
+  <div class="section">
+    <h2>Upload Engagement CSV</h2>
+    <p>Upload an engagement tracking CSV export. Records are matched to existing customers by <strong>Customer Name</strong>. Duplicate customer names in the CSV are merged — conflicting field values are concatenated. Rows with no matching customer are skipped and reported.</p>
+    <p style="font-size:12px; color:var(--text2); margin-top:6px;">Expected columns: <code>Customer Name, Sales Engineer, State, Catalog, BU PLM Sponsor, BU PLM TME, Current Status, Next Actions, Get Well Plan Link</code></p>
+    <form method="post" action="/admin/upload-engagement" enctype="multipart/form-data">
+      <div class="upload-area">
+        <input type="file" name="file" accept=".csv" required>
+        <button class="btn btn-green" type="submit">Upload &amp; ingest</button>
+      </div>
+    </form>
+  </div>
+
   <!-- Export CSV -->
   <div class="section">
     <h2>Export to CSV</h2>

@@ -89,6 +89,7 @@
         <tr>
           <th>Customer</th>
           <th>Account Manager</th>
+          <th>Sales Engineer</th>
           <th>State</th>
           <th>Category</th>
           <th>BU PLM Sponsor</th>
@@ -104,6 +105,7 @@
         <tr>
           <td><strong>{{ c.customer_name }}</strong></td>
           <td style="color:var(--text2); font-size:13px;">{{ c.account_manager or '—' }}</td>
+          <td style="color:var(--text2); font-size:13px;">{% if c.sales_engineer %}{{ c.sales_engineer }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
           <td style="font-size:13px;">{% if c.state %}{{ c.state }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
           <td style="font-size:13px;">{% if c.category %}{{ c.category }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
           <td style="font-size:13px;">{% if c.bu_plm_sponsor %}{{ c.bu_plm_sponsor }}{% else %}<span class="cell-empty">—</span>{% endif %}</td>
@@ -122,7 +124,7 @@
           <td><a class="btn-edit" href="/customer/{{ c.id }}/support">Edit</a></td>
         </tr>
         {% else %}
-        <tr><td colspan="10" class="empty">No customers found. Ingest a CSV to get started.</td></tr>
+        <tr><td colspan="11" class="empty">No customers found. Ingest a CSV to get started.</td></tr>
         {% endfor %}
       </tbody>
     </table>

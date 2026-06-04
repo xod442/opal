@@ -804,6 +804,7 @@ def support_form(request: Request, customer_id: int):
 def support_save(
     request: Request,
     customer_id: int,
+    sales_engineer: str = Form(""),
     state: str = Form(""),
     category: str = Form(""),
     bu_plm_sponsor: str = Form(""),
@@ -819,10 +820,10 @@ def support_save(
     customer = conn.execute("SELECT customer_name FROM customers WHERE id = ?", (customer_id,)).fetchone()
     conn.execute("""
         UPDATE customers SET
-            state=?, category=?, bu_plm_sponsor=?, bu_tme_sponsor=?,
+            sales_engineer=?, state=?, category=?, bu_plm_sponsor=?, bu_tme_sponsor=?,
             current_status=?, next_actions=?, get_well_plan=?, last_modified=?
         WHERE id=?
-    """, (state, category, bu_plm_sponsor, bu_tme_sponsor,
+    """, (sales_engineer, state, category, bu_plm_sponsor, bu_tme_sponsor,
           current_status, next_actions, get_well_plan,
           datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
           customer_id))
@@ -1004,6 +1005,86 @@ async def admin_upload(request: Request, file: UploadFile = File(...)):
     msg = f"{inserted}+inserted%2C+{skipped_dup}+duplicates+ignored%2C+{skipped_mist}+Mist+rows+skipped"
     if new_critical:
         msg += f"%2C+{len(new_critical)}+Critical+alert{'s' if len(new_critical) > 1 else ''}+sent"
+    return RedirectResponse(url=f"/admin?msg={msg}", status_code=303)
+
+
+@app.post("/admin/upload-engagement")
+async def admin_upload_engagement(request: Request, file: UploadFile = File(...)):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+
+    raw = await file.read()
+    text = raw.decode("utf-8-sig")
+    reader = csv.DictReader(io.StringIO(text))
+
+    # Normalize header names: lowercase + strip
+    def norm(s):
+        return s.strip().lower() if s else ""
+
+    COL_MAP = {
+        "customer name":    "customer_name",
+        "sales engineer":   "sales_engineer",
+        "state":            "state",
+        "catalog":          "category",
+        "bu plm sponsor":   "bu_plm_sponsor",
+        "bu plm tme":       "bu_tme_sponsor",
+        "current status":   "current_status",
+        "next actions":     "next_actions",
+        "get well plan link": "get_well_plan",
+    }
+
+    # Group rows by customer name (case-insensitive), merging duplicates
+    groups: dict = {}
+    for row in reader:
+        normalized = {norm(k): v.strip() for k, v in row.items()}
+        cname = normalized.get("customer name", "").strip()
+        if not cname:
+            continue
+        key = cname.lower()
+        if key not in groups:
+            groups[key] = {"customer_name": cname}
+        for csv_col, db_col in COL_MAP.items():
+            if csv_col == "customer name":
+                continue
+            val = normalized.get(csv_col, "").strip()
+            if not val:
+                continue
+            existing = groups[key].get(db_col, "")
+            if not existing:
+                groups[key][db_col] = val
+            elif val not in existing:
+                groups[key][db_col] = existing + "\n" + val
+
+    conn = get_db()
+    updated = skipped = 0
+    skipped_names = []
+
+    for key, fields in groups.items():
+        cname = fields.pop("customer_name")
+        row = conn.execute(
+            "SELECT id FROM customers WHERE LOWER(customer_name) = ?", (cname.lower(),)
+        ).fetchone()
+        if not row:
+            skipped += 1
+            skipped_names.append(cname)
+            continue
+        sets = ", ".join(f"{col}=?" for col in fields)
+        vals = list(fields.values()) + [datetime.now().strftime("%Y-%m-%d %H:%M:%S"), row["id"]]
+        conn.execute(f"UPDATE customers SET {sets}, last_modified=? WHERE id=?", vals)
+        updated += 1
+
+    conn.commit()
+    conn.close()
+
+    log_action(session["username"], "import_engagement", "",
+               f"updated={updated}, skipped={skipped}")
+
+    msg = f"{updated}+record(s)+updated+from+engagement+CSV"
+    if skipped:
+        names = "%2C+".join(skipped_names[:5])
+        more = f"+%28and+{skipped - 5}+more%29" if skipped > 5 else ""
+        msg += f"%2C+{skipped}+skipped+(no+match)%3A+{names}{more}"
     return RedirectResponse(url=f"/admin?msg={msg}", status_code=303)
 
 
