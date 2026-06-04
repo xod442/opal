@@ -722,7 +722,7 @@ docker compose run --rm ingest</code></pre>
     <div class="steps-wrap">
       <ol class="steps">
         <li>From the login page, click <strong>Create an account</strong>.</li>
-        <li>Enter a unique username, an optional email address, and a password (minimum 8 characters).</li>
+        <li>Enter a unique username, an <strong>@hpe.com</strong> email address, and a password (minimum 8 characters).</li>
         <li>Click <strong>Create account</strong>.</li>
         <li>On success, you are redirected to the login page with a confirmation message and can sign in immediately.</li>
       </ol>
@@ -735,6 +735,10 @@ docker compose run --rm ingest</code></pre>
       via <strong>Admin → User Management</strong> if needed.
     </p>
 
+    <div class="callout callout-note">
+      <strong>HPE email required.</strong> Only <code>@hpe.com</code> addresses are accepted. The domain
+      is validated in the browser and again on the server — non-HPE addresses are rejected.
+    </div>
     <div class="callout callout-note">
       Self-registration is logged in the audit trail as a <code>create_user</code> action with the actor
       shown as <code>self-register</code>.
