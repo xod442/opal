@@ -99,6 +99,29 @@ docker compose run --rm ingest
 | Login with new password | Redirects to dashboard |
 | Admin page | CSV upload, user management, email settings visible |
 
+### Forgot the admin password
+
+Run this command from your host — it resets the admin password to `admin` and forces a password change on next login:
+
+```bash
+docker exec opal_opal_1 python3 -c "
+from passlib.context import CryptContext
+import sqlite3
+pwd_ctx = CryptContext(schemes=['bcrypt'], deprecated='auto')
+conn = sqlite3.connect('/data/opal.db')
+conn.execute(\"UPDATE users SET password_hash=?, must_change_password=1 WHERE username='admin'\", (pwd_ctx.hash('admin'),))
+conn.commit()
+conn.close()
+print('Done')
+"
+```
+
+> **Important:** Always run this inside the container via `docker exec`. Running it with the host Python will fail due to a bcrypt version mismatch.
+
+Log in with `admin` / `admin` and you will be prompted to set a new password immediately.
+
+---
+
 ### Resetting to factory defaults
 
 **Option 1 — Via the Admin UI** (container stays running):

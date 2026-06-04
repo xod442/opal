@@ -1236,22 +1236,27 @@ bsmith,bsmith@example.com,TempPass3!,admin</code></pre>
   - "9191:8000"   # change 9090 to any free port</code></pre>
 
     <h3>Forgot the admin password</h3>
-    <p>If you are locked out entirely, connect directly to the SQLite database and reset the hash:</p>
-    <pre><code># Open a shell in the running container
-docker compose exec opal /bin/sh
-
-# Inside the container
-python3 - &lt;&lt;'EOF'
-import sqlite3, os
+    <p>
+      If you are locked out, run the following command from the host. It resets the admin password to
+      <code>admin</code> and forces a password change on next login.
+    </p>
+    <div class="callout callout-warning">
+      <strong>Important:</strong> Always run this command <em>inside the container</em> using
+      <code>docker exec</code>. Running it with the host Python will fail silently due to a bcrypt
+      version mismatch — the hash will be written but the password will not work.
+    </div>
+    <pre><code>docker exec opal_opal_1 python3 -c "
 from passlib.context import CryptContext
-ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-db = os.getenv("DB_PATH", "/data/opal.db")
-conn = sqlite3.connect(db)
-conn.execute("UPDATE users SET password_hash=?, must_change_password=1 WHERE username='admin'",
-             (ctx.hash("TempPass123"),))
+import sqlite3
+pwd_ctx = CryptContext(schemes=['bcrypt'], deprecated='auto')
+conn = sqlite3.connect('/data/opal.db')
+conn.execute(\"UPDATE users SET password_hash=?, must_change_password=1 WHERE username='admin'\",
+             (pwd_ctx.hash('admin'),))
 conn.commit()
-print("Done. Login with admin / TempPass123")
-EOF</code></pre>
+conn.close()
+print('Done')
+"</code></pre>
+    <p>Log in with <code>admin</code> / <code>admin</code> — you will be prompted to set a new password immediately.</p>
 
     <h3>CSV upload produces 0 records inserted</h3>
     <ul>
