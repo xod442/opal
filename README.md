@@ -17,11 +17,12 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 - **Stale records** — top 20 customers longest without an update
 - **Weekly CSV ingest** — upload Microsoft Forms exports; duplicates and Mist rows filtered automatically
 - **Secure login** — bcrypt passwords, signed session cookies, forced password change on first login
+- **Self-registration** — new users can create their own account from the login page (user level only; admins can promote)
 - **User management** — create users, bulk import via CSV, enable/disable accounts, reset passwords (admin only)
 - **Trend tracking** — week-over-week heat movement with dashboard indicators and a dedicated trends page
 - **Email alerts** — automatic email notification when a new Critical customer is ingested
 - **Audit trail** — every database change logged with the user who made it
-- **Auto-backup** — database backed up at 6 AM and 6 PM daily, last 20 backups retained
+- **Auto-backup** — database backed up at 6 AM and 6 PM daily, last 20 backups retained; optional secondary backup location configurable from the Admin UI
 - **Admin tools** — manual backup, CSV upload, export, restore, delete database (auto-recreates fresh DB and redirects to login)
 
 ---
@@ -139,6 +140,9 @@ docker compose run --rm ingest
 ---
 
 ## User Management
+
+### Self-registration
+Users can create their own account directly from the login page — click **Create an account**, fill in a username, optional email, and password (minimum 8 characters), then submit. Accounts created this way are always user-level. An admin can promote the account to admin via **Admin → User Management** if needed.
 
 ### Creating users one at a time
 Go to **Admin → User Management**, fill in the username, email, temporary password, and role, then click **Create user**. New users are required to change their password on first login.

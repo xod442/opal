@@ -250,6 +250,14 @@
     <form method="post" action="/admin/backup">
       <button class="btn btn-primary" type="submit">Run backup now</button>
     </form>
+    <h3 style="margin-top:20px; margin-bottom:8px; font-size:14px; font-weight:600;">Secondary Backup Location</h3>
+    <p style="font-size:13px; color:var(--text2); margin-bottom:12px;">
+      If set, every backup is also copied to this path. Use an absolute path accessible inside the container (e.g. a mounted volume or NAS).
+    </p>
+    <form method="post" action="/admin/backup-settings" style="display:flex; gap:10px; align-items:center;">
+      <input type="text" name="backup_dir_2" value="{{ backup_dir_2 }}" placeholder="/mnt/nas/opal-backups" style="flex:1; background:var(--surface2); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:8px 12px; font-size:13px;">
+      <button class="btn btn-primary" type="submit">Save</button>
+    </form>
   </div>
 
   <!-- Upload CSV -->

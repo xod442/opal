@@ -279,6 +279,7 @@
   <a class="nav-link" href="#delete-db">Delete Database</a>
 
   <div class="nav-section">User Management</div>
+  <a class="nav-link" href="#self-registration">Self-Registration</a>
   <a class="nav-link" href="#user-management">Managing Users</a>
   <a class="nav-link" href="#password-policy">Password Policy</a>
 
@@ -633,6 +634,29 @@ docker compose run --rm ingest</code></pre>
       </ol>
     </div>
 
+    <h3>Secondary backup location</h3>
+    <p>
+      You can configure a second destination for every backup — useful for copying to a mounted NAS,
+      external drive, or any path accessible inside the container.
+    </p>
+    <div class="steps-wrap">
+      <ol class="steps">
+        <li>Log in as an admin and click <strong>Admin</strong>.</li>
+        <li>Under <strong>Backup Database → Secondary Backup Location</strong>, enter an absolute path
+            accessible inside the container (e.g. <code>/mnt/nas/opal-backups</code>).</li>
+        <li>Click <strong>Save</strong>.</li>
+      </ol>
+    </div>
+    <p>
+      Every subsequent backup — both scheduled and manual — will be copied to the secondary location in
+      addition to the primary <code>./data/backups/</code> folder. If the secondary path is unreachable,
+      the primary backup still completes normally. Clear the field and save to disable the secondary copy.
+    </p>
+    <div class="callout callout-warning">
+      The path must be reachable <em>inside the container</em>. Mount the target volume in
+      <code>docker-compose.yaml</code> under the <code>volumes:</code> key before using it here.
+    </div>
+
     <h3>Backing up manually from the host</h3>
     <p>The database is a plain SQLite file. You can copy it directly:</p>
     <pre><code>cp data/opal.db data/opal_manual_backup_$(date +%Y%m%d).db</code></pre>
@@ -683,6 +707,37 @@ docker compose run --rm ingest</code></pre>
 
     <div class="callout callout-note">
       <strong>Note:</strong> Your session cookie becomes invalid after deletion because it references the old database. Opal redirects you to the login page automatically — log in with <code>admin / admin</code> and you will be prompted to set a new password.
+    </div>
+  </section>
+
+  <!-- ── Self-registration ── -->
+  <section id="self-registration">
+    <h2>Self-Registration</h2>
+    <p>
+      Users can create their own accounts without admin involvement. A <strong>Create an account</strong>
+      link appears below the sign-in form on the login page.
+    </p>
+
+    <h3>How it works</h3>
+    <div class="steps-wrap">
+      <ol class="steps">
+        <li>From the login page, click <strong>Create an account</strong>.</li>
+        <li>Enter a unique username, an optional email address, and a password (minimum 8 characters).</li>
+        <li>Click <strong>Create account</strong>.</li>
+        <li>On success, you are redirected to the login page with a confirmation message and can sign in immediately.</li>
+      </ol>
+    </div>
+
+    <h3>Account level</h3>
+    <p>
+      All self-registered accounts are created at <strong>user</strong> level. They can view the dashboard and
+      edit customer records, but cannot access the Admin page. An admin can promote the account to admin role
+      via <strong>Admin → User Management</strong> if needed.
+    </p>
+
+    <div class="callout callout-note">
+      Self-registration is logged in the audit trail as a <code>create_user</code> action with the actor
+      shown as <code>self-register</code>.
     </div>
   </section>
 

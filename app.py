@@ -350,11 +350,22 @@ def do_backup():
     if not os.path.exists(DB_PATH):
         return None
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    dest = os.path.join(BACKUP_DIR, f"opal_backup_{ts}.db")
+    filename = f"opal_backup_{ts}.db"
+    dest = os.path.join(BACKUP_DIR, filename)
     shutil.copy2(DB_PATH, dest)
     backups = sorted([f for f in os.listdir(BACKUP_DIR) if f.endswith(".db")], reverse=True)
     for old in backups[20:]:
         os.remove(os.path.join(BACKUP_DIR, old))
+
+    # Copy to secondary backup location if configured
+    try:
+        secondary = get_setting("backup_dir_2", "").strip()
+        if secondary:
+            os.makedirs(secondary, exist_ok=True)
+            shutil.copy2(DB_PATH, os.path.join(secondary, filename))
+    except Exception:
+        pass  # never let secondary failure break primary backup
+
     return dest
 
 
@@ -455,10 +466,10 @@ scheduler.start()
 # ── Login / Logout ────────────────────────────────────────────────────────────
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request, error: str = ""):
+def login_page(request: Request, error: str = "", msg: str = ""):
     if get_session(request):
         return RedirectResponse(url="/", status_code=303)
-    return templates.TemplateResponse(request=request, name="login.html", context={"error": error})
+    return templates.TemplateResponse(request=request, name="login.html", context={"error": error, "msg": msg})
 
 
 @app.post("/login")
@@ -492,6 +503,53 @@ def logout():
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie("session")
     return response
+
+
+# ── Self-registration ─────────────────────────────────────────────────────────
+
+@app.get("/register", response_class=HTMLResponse)
+def register_page(request: Request, error: str = "", success: str = ""):
+    if get_session(request):
+        return RedirectResponse(url="/", status_code=303)
+    return templates.TemplateResponse(request=request, name="register.html",
+                                      context={"error": error, "success": success})
+
+
+@app.post("/register")
+def register_submit(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(""),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    if get_session(request):
+        return RedirectResponse(url="/", status_code=303)
+    username = username.strip()
+    email = email.strip()
+    if not username or not password:
+        return templates.TemplateResponse(request=request, name="register.html",
+                                          context={"error": "Username and password are required."})
+    if password != confirm_password:
+        return templates.TemplateResponse(request=request, name="register.html",
+                                          context={"error": "Passwords do not match."})
+    if len(password) < 8:
+        return templates.TemplateResponse(request=request, name="register.html",
+                                          context={"error": "Password must be at least 8 characters."})
+    conn = get_db()
+    try:
+        conn.execute("""
+            INSERT INTO users (username, email, password_hash, role, is_active, created_at)
+            VALUES (?, ?, ?, 'user', 1, ?)
+        """, (username, email, pwd_ctx.hash(password), datetime.now().isoformat()))
+        conn.commit()
+        log_action("self-register", "create_user", username, "role=user")
+    except sqlite3.IntegrityError:
+        conn.close()
+        return templates.TemplateResponse(request=request, name="register.html",
+                                          context={"error": f"Username '{username}' is already taken."})
+    conn.close()
+    return RedirectResponse(url="/login?msg=Account+created.+You+can+now+sign+in.", status_code=303)
 
 
 # ── Change password ───────────────────────────────────────────────────────────
@@ -876,13 +934,16 @@ def admin(request: Request, msg: str = Query("")):
     conn.close()
 
     email_cfg = get_email_config()
+    conn = get_db()
+    backup_dir_2 = get_setting("backup_dir_2", "")
+    conn.close()
     return templates.TemplateResponse(
         request=request, name="admin.html",
         context={
             "backups": list_backups(), "db_size": db_size,
             "record_count": record_count, "db_exists": db_exists,
             "msg": msg, "session": session, "users": users,
-            "email_cfg": email_cfg,
+            "email_cfg": email_cfg, "backup_dir_2": backup_dir_2,
         },
     )
 
@@ -896,6 +957,19 @@ def admin_backup(request: Request):
     name = os.path.basename(dest) if dest else "nothing to backup"
     log_action(session["username"], "backup", name)
     return RedirectResponse(url=f"/admin?msg=Backup+created%3A+{name}", status_code=303)
+
+
+@app.post("/admin/backup-settings")
+def admin_backup_settings(request: Request, backup_dir_2: str = Form("")):
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url="/login", status_code=303)
+    conn = get_db()
+    set_setting(conn, "backup_dir_2", backup_dir_2.strip())
+    conn.commit()
+    conn.close()
+    log_action(session["username"], "backup_settings", "", f"secondary={backup_dir_2.strip() or 'cleared'}")
+    return RedirectResponse(url="/admin?msg=Backup+settings+saved", status_code=303)
 
 
 @app.post("/admin/upload")
