@@ -527,9 +527,12 @@ def register_submit(
         return RedirectResponse(url="/", status_code=303)
     username = username.strip()
     email = email.strip()
-    if not username or not password:
+    if not username or not password or not email:
         return templates.TemplateResponse(request=request, name="register.html",
-                                          context={"error": "Username and password are required."})
+                                          context={"error": "Username, email, and password are required."})
+    if not email.lower().endswith("@hpe.com"):
+        return templates.TemplateResponse(request=request, name="register.html",
+                                          context={"error": "Email must be an @hpe.com address."})
     if password != confirm_password:
         return templates.TemplateResponse(request=request, name="register.html",
                                           context={"error": "Passwords do not match."})
