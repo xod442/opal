@@ -51,6 +51,47 @@ You will be required to change the password on first login.
 
 ---
 
+## Docker Hub Deployment
+
+Use this method to deploy Opal on a VM or any host without cloning the repo.
+
+### Publishing the image (one time)
+
+```bash
+docker login
+docker build -t xod442/opal:latest .
+docker push xod442/opal:latest
+```
+
+### Deploying on a clean host
+
+If Docker is not installed:
+```bash
+curl -fsSL https://get.docker.com | sh
+```
+
+Then:
+```bash
+mkdir -p data/backups
+docker run -d \
+  --name opal \
+  -p 9090:9090 \
+  -v $(pwd)/data:/data \
+  -e SECRET_KEY=your-secret-here \
+  xod442/opal:latest
+```
+
+Generate a strong secret key with:
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+Open **http://\<host-ip\>:9090** and log in with `admin` / `admin`. You will be prompted to set a new password.
+
+> Keep the `SECRET_KEY` value the same every time you start the container — changing it invalidates all active sessions.
+
+---
+
 ## Clean Install
 
 These steps walk through a fresh deployment from scratch.
