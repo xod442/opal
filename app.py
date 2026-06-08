@@ -1016,21 +1016,31 @@ async def admin_upload_engagement(request: Request, file: UploadFile = File(...)
 
     raw = await file.read()
     text = raw.decode("utf-8-sig")
-    reader = csv.DictReader(io.StringIO(text))
 
     # Normalize header names: lowercase + strip
     def norm(s):
         return s.strip().lower() if s else ""
 
+    # Skip metadata rows at the top — find the real header row by looking
+    # for the line that contains "customer name" (case-insensitive)
+    lines = text.splitlines()
+    header_idx = 0
+    for i, line in enumerate(lines):
+        if "customer name" in line.lower():
+            header_idx = i
+            break
+    data_text = "\n".join(lines[header_idx:])
+    reader = csv.DictReader(io.StringIO(data_text))
+
     COL_MAP = {
-        "customer name":    "customer_name",
-        "sales engineer":   "sales_engineer",
-        "state":            "state",
-        "catalog":          "category",
-        "bu plm sponsor":   "bu_plm_sponsor",
-        "bu plm tme":       "bu_tme_sponsor",
-        "current status":   "current_status",
-        "next actions":     "next_actions",
+        "customer name":      "customer_name",
+        "sales engineer":     "sales_engineer",
+        "state":              "state",
+        "category":           "category",
+        "bu plm sponsor":     "bu_plm_sponsor",
+        "bu tme sponsor":     "bu_tme_sponsor",
+        "current status":     "current_status",
+        "next actions":       "next_actions",
         "get well plan link": "get_well_plan",
     }
 
