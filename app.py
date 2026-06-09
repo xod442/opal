@@ -1,5 +1,5 @@
 """
-Opal — Operational Priority and At-Risk Likelihood
+Opal-Central — Central Customer Risk Dashboard
 """
 
 import csv
@@ -29,7 +29,7 @@ SESSION_MAX_AGE = 8 * 3600  # 8 hours
 
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
-app = FastAPI(title="Opal")
+app = FastAPI(title="Opal-Central")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 pwd_ctx    = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -341,8 +341,8 @@ def send_test_email():
         raise ValueError("Email settings incomplete — fill in SMTP host, username, password, and recipient.")
     _smtp_send(
         cfg,
-        "Opal — Test Email",
-        "This is a test email from Opal.\n\nYour SMTP settings are working correctly.",
+        "Opal-Central — Test Email",
+        "This is a test email from Opal-Central.\n\nYour SMTP settings are working correctly.",
     )
 
 
@@ -993,15 +993,15 @@ async def admin_upload(request: Request, file: UploadFile = File(...)):
 
     # Fire email alerts for each new Critical customer
     for c in new_critical:
-        subject = f"[Opal] New Critical Customer: {c['name']}"
+        subject = f"[Opal-Central] New Critical Customer: {c['name']}"
         body = (
-            f"A new Critical customer has been added to Opal.\n\n"
+            f"A new Critical customer has been added to Opal-Central.\n\n"
             f"Customer:       {c['name']}\n"
             f"Account Manager:{c['am']}\n"
             f"Sales Engineer: {c['se']}\n"
             f"Actively at risk: {c['at_risk']}\n"
             f"Risk reasons:   {c['reasons']}\n\n"
-            f"View in Opal: http://localhost:9090\n"
+            f"View in Opal-Central: http://localhost:9090\n"
         )
         send_alert(subject, body)
         log_action(session["username"], "email_alert", c['name'], "Critical customer alert sent")

@@ -1,6 +1,6 @@
-# Opal
+# Opal-Central
 
-**Operational Priority and At-Risk Likelihood**
+**Central Customer Risk Dashboard**
 
 A customer escalation risk tracking dashboard for HPE Networking. Account managers and sales engineers submit weekly status via Microsoft Forms; a CSV export is ingested into Opal to keep the team aligned on which customers need attention.
 

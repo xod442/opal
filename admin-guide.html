@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Opal — Administrator Guide</title>
+<title>Opal-Central — Administrator Guide</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -256,11 +256,8 @@
 <!-- ── Sidebar ── -->
 <nav class="sidebar">
   <div class="sidebar-brand">
-    <h1>Opal</h1>
-    <div class="sub">
-      <span>O</span>perational <span>P</span>riority and<br>
-      <span>A</span>t-Risk <span>L</span>ikelihood
-    </div>
+    <h1>Opal-Central</h1>
+    <div class="sub">Central Customer Risk Dashboard</div>
   </div>
 
   <div class="nav-section">Getting Started</div>
@@ -303,16 +300,16 @@
 <!-- ── Main content ── -->
 <main class="main">
 
-  <h1 class="page-title">Opal Administrator Guide</h1>
+  <h1 class="page-title">Opal-Central Administrator Guide</h1>
   <p class="page-subtitle">Deployment, operations, and user management reference</p>
 
   <!-- ── Overview ── -->
   <section id="overview">
     <h2>Overview</h2>
     <p>
-      <strong>Opal</strong> (Operational Priority and At-Risk Likelihood) is an internal web application
-      for tracking HPE Networking customer escalation risk. Account managers and sales engineers submit
-      weekly status via Microsoft Forms; a CSV export is ingested into Opal to populate the dashboard.
+      <strong>Opal-Central</strong> is the central customer risk dashboard for HPE Networking, tracking
+      customer escalation risk across the team. Account managers and sales engineers submit
+      weekly status via Microsoft Forms; a CSV export is ingested into Opal-Central to populate the dashboard.
     </p>
     <p>Key capabilities:</p>
     <ul>
@@ -358,7 +355,7 @@
 cd opal</code></pre>
 
     <h3>2. Create the data directory</h3>
-    <p>Opal stores the database and backups in <code>./data/</code> on the host. Docker Compose creates this automatically on first run, but you can also create it manually:</p>
+    <p>Opal-Central stores the database and backups in <code>./data/</code> on the host. Docker Compose creates this automatically on first run, but you can also create it manually:</p>
     <pre><code>mkdir -p data/backups</code></pre>
 
     <h3>3. (Optional) Set a production secret key</h3>
@@ -383,7 +380,7 @@ cd opal</code></pre>
   <!-- ── First Login ── -->
   <section id="first-login">
     <h2>First Login</h2>
-    <p>On first startup, Opal automatically creates a default administrator account:</p>
+    <p>On first startup, Opal-Central automatically creates a default administrator account:</p>
 
     <div class="tbl-wrap">
       <table>
@@ -445,7 +442,7 @@ rm -rf data/
 docker compose up -d</code></pre>
 
     <p>
-      After the container restarts, Opal recreates the database with a fresh default <code>admin / admin</code>
+      After the container restarts, Opal-Central recreates the database with a fresh default <code>admin / admin</code>
       account and empty tables. Follow the <a href="#first-login" style="color:var(--accent);">First Login</a> steps to set a new password.
     </p>
 
@@ -487,7 +484,7 @@ docker compose up -d</code></pre>
     <h2>Ingesting CSV Data</h2>
     <p>
       Customer data originates from a Microsoft Forms survey. Each week, the form owner exports the results
-      to a CSV and ingests it into Opal. There are two methods:
+      to a CSV and ingests it into Opal-Central. There are two methods:
     </p>
 
     <h3>Method 1 — Admin upload (recommended)</h3>
@@ -517,11 +514,11 @@ docker compose run --rm ingest</code></pre>
           </tr>
           <tr>
             <td><strong>Mist filter</strong></td>
-            <td>Rows where the <em>Current deployed Architecture</em> field starts with "Mist" are skipped. These are a different product line and are not tracked in Opal.</td>
+            <td>Rows where the <em>Current deployed Architecture</em> field starts with "Mist" are skipped. These are a different product line and are not tracked in Opal-Central.</td>
           </tr>
           <tr>
             <td><strong>Encoding</strong></td>
-            <td>Microsoft Forms exports with a UTF-8 BOM (<code>utf-8-sig</code>). Opal handles this automatically.</td>
+            <td>Microsoft Forms exports with a UTF-8 BOM (<code>utf-8-sig</code>). Opal-Central handles this automatically.</td>
           </tr>
         </tbody>
       </table>
@@ -532,7 +529,7 @@ docker compose run --rm ingest</code></pre>
   <section id="email-alerts">
     <h2>Email Alerts</h2>
     <p>
-      Opal can send an email notification whenever a new <strong>Critical</strong> customer is added
+      Opal-Central can send an email notification whenever a new <strong>Critical</strong> customer is added
       during a CSV ingest. Alerts are delivered immediately after the upload completes.
     </p>
 
@@ -569,7 +566,7 @@ docker compose run --rm ingest</code></pre>
       <li>Sales Engineer</li>
       <li>Actively at risk status</li>
       <li>Risk reasons</li>
-      <li>Link to the Opal dashboard</li>
+      <li>Link to the Opal-Central dashboard</li>
     </ul>
     <p>
       If multiple new Critical customers are in a single CSV upload, a separate email is sent for each one.
@@ -607,7 +604,7 @@ docker compose run --rm ingest</code></pre>
 
     <h3>Automatic backups</h3>
     <p>
-      Opal automatically backs up the database twice daily — at <strong>6:00 AM</strong> and <strong>6:00 PM</strong>
+      Opal-Central automatically backs up the database twice daily — at <strong>6:00 AM</strong> and <strong>6:00 PM</strong>
       server time. Backups are stored in <code>./data/backups/</code> as timestamped
       <code>.db</code> files (e.g., <code>opal_backup_20260601_060000.db</code>).
       The 20 most recent backups are kept; older ones are deleted automatically.
@@ -624,7 +621,7 @@ docker compose run --rm ingest</code></pre>
 
     <h3>Restoring from a backup</h3>
     <div class="callout callout-warning">
-      <strong>Safety net:</strong> Before restoring, Opal automatically creates a backup of the current database. You can always undo a restore by restoring the backup that was created immediately before it.
+      <strong>Safety net:</strong> Before restoring, Opal-Central automatically creates a backup of the current database. You can always undo a restore by restoring the backup that was created immediately before it.
     </div>
     <div class="steps-wrap">
       <ol class="steps">
@@ -703,10 +700,10 @@ docker compose run --rm ingest</code></pre>
     </div>
 
     <h3>What happens after deletion</h3>
-    <p>Opal immediately recreates the database with all tables and a fresh default admin account. You do not need to restart the container. The action is recorded in the new audit log before the old database is removed.</p>
+    <p>Opal-Central immediately recreates the database with all tables and a fresh default admin account. You do not need to restart the container. The action is recorded in the new audit log before the old database is removed.</p>
 
     <div class="callout callout-note">
-      <strong>Note:</strong> Your session cookie becomes invalid after deletion because it references the old database. Opal redirects you to the login page automatically — log in with <code>admin / admin</code> and you will be prompted to set a new password.
+      <strong>Note:</strong> Your session cookie becomes invalid after deletion because it references the old database. Opal-Central redirects you to the login page automatically — log in with <code>admin / admin</code> and you will be prompted to set a new password.
     </div>
   </section>
 
@@ -806,7 +803,7 @@ bsmith,bsmith@example.com,TempPass3!,admin</code></pre>
 
     <h3>Resetting a password</h3>
     <p>
-      Click <strong>Reset pw</strong> next to the user. Opal generates a random temporary password and
+      Click <strong>Reset pw</strong> next to the user. Opal-Central generates a random temporary password and
       displays it in the confirmation banner at the top of the Admin page. Give that password to the user —
       they will be required to set a new password on their next login.
     </p>
@@ -1107,7 +1104,7 @@ bsmith,bsmith@example.com,TempPass3!,admin</code></pre>
   <!-- ── Data Model ── -->
   <section id="data-model">
     <h2>Data Model</h2>
-    <p>Opal uses a single SQLite file at <code>/data/opal.db</code> (inside the container), mapped to <code>./data/opal.db</code> on the host.</p>
+    <p>Opal-Central uses a single SQLite file at <code>/data/opal.db</code> (inside the container), mapped to <code>./data/opal.db</code> on the host.</p>
 
     <h3>customers table</h3>
     <div class="tbl-wrap">
