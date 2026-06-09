@@ -3,7 +3,7 @@ services:
   opal:
     build: .
     ports:
-      - "9090:8000"
+      - "8443:8000"
     volumes:
       - ./data:/data
     environment:
