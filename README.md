@@ -30,7 +30,7 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 ## Requirements
 
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) (includes Docker Compose v2)
-- Available port 9090
+- Available port 8443
 
 No Python or other dependencies needed on the host.
 
@@ -44,7 +44,7 @@ cd opal
 docker compose up -d --build
 ```
 
-Open **http://localhost:9090** in your browser.
+Open **http://localhost:8443** in your browser.
 
 **Default credentials:** `admin` / `admin`
 You will be required to change the password on first login.
@@ -75,7 +75,7 @@ Then:
 mkdir -p data/backups
 docker run -d \
   --name opal \
-  -p 9090:9090 \
+  -p 8443:8000 \
   -v $(pwd)/data:/data \
   -e SECRET_KEY=your-secret-here \
   xod442/opal:latest
@@ -86,7 +86,7 @@ Generate a strong secret key with:
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-Open **http://\<host-ip\>:9090** and log in with `admin` / `admin`. You will be prompted to set a new password.
+Open **http://\<host-ip\>:8443** and log in with `admin` / `admin`. You will be prompted to set a new password.
 
 > Keep the `SECRET_KEY` value the same every time you start the container — changing it invalidates all active sessions.
 
@@ -98,7 +98,7 @@ These steps walk through a fresh deployment from scratch.
 
 ### 1. Prerequisites
 - [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
-- Port **9090** available on the host
+- Port **8443** available on the host
 
 ### 2. Clone and start
 
@@ -111,11 +111,11 @@ docker compose up -d --build
 The container will:
 - Pull the Python 3.12 base image and install dependencies
 - Create `./data/opal.db` with all tables on first startup
-- Start the web server on port 9090
+- Start the web server on port 8443
 
 ### 3. First login
 
-1. Open **http://localhost:9090**
+1. Open **http://localhost:8443**
 2. Log in with `admin` / `admin`
 3. You will be redirected to a forced password change — set a strong password and continue
 4. The dashboard will load (empty until a CSV is ingested)
@@ -136,7 +136,7 @@ docker compose run --rm ingest
 |---|---|
 | `docker compose ps` | `opal` container status **Up** |
 | `docker compose logs` | No errors, `Application startup complete` |
-| http://localhost:9090/login | Login page loads |
+| http://localhost:8443/login | Login page loads |
 | Login with new password | Redirects to dashboard |
 | Admin page | CSV upload, user management, email settings visible |
 
