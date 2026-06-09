@@ -16,6 +16,7 @@ from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI, Form, Query, Request, UploadFile, File, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 from passlib.context import CryptContext
@@ -30,6 +31,7 @@ SESSION_MAX_AGE = 8 * 3600  # 8 hours
 os.makedirs(BACKUP_DIR, exist_ok=True)
 
 app = FastAPI(title="Opal-Central")
+app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__), "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
 
 pwd_ctx    = CryptContext(schemes=["bcrypt"], deprecated="auto")
