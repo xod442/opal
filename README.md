@@ -24,6 +24,7 @@ A customer escalation risk tracking dashboard for HPE Networking. Account manage
 - **Audit trail** — every database change logged with the user who made it
 - **Auto-backup** — database backed up at 6 AM and 6 PM daily, last 20 backups retained; optional secondary backup location configurable from the Admin UI
 - **Admin tools** — manual backup, CSV upload, export, restore, delete database (auto-recreates fresh DB and redirects to login)
+- **REST API** — full Swagger UI at `/docs` and ReDoc at `/redoc`; all routes are documented with request/response schemas
 
 ---
 
@@ -278,6 +279,22 @@ opal/
     ├── login.html
     └── change_password.html
 ```
+
+---
+
+## API Reference
+
+Opal-Central exposes its full route set through a built-in interactive API interface powered by FastAPI.
+
+| Interface | URL | Description |
+|---|---|---|
+| Swagger UI | `http://localhost:8443/docs` | Interactive — try requests directly in the browser |
+| ReDoc | `http://localhost:8443/redoc` | Read-only reference documentation |
+| OpenAPI JSON | `http://localhost:8443/openapi.json` | Machine-readable schema for tooling integration |
+
+The **API** button on the Admin page opens the Swagger UI in a new tab.
+
+> **Note:** The API currently uses session-cookie authentication. Browser-based Swagger requests will work if you are already logged in. Programmatic access requires passing a valid session cookie obtained from a `POST /login` request.
 
 ---
 
