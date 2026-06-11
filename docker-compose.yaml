@@ -9,6 +9,7 @@ services:
     environment:
       DB_PATH: /data/opal.db
       BACKUP_DIR: /data/backups
+      ROOT_PATH: /opal-central
     restart: unless-stopped
 
   ingest:
