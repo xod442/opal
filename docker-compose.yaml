@@ -10,6 +10,7 @@ services:
       DB_PATH: /data/opal.db
       BACKUP_DIR: /data/backups
       ROOT_PATH: /opal-central
+      OPAL_FERNET_KEY: ${OPAL_FERNET_KEY:-}
     restart: unless-stopped
 
   ingest:
