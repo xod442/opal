@@ -1,6 +1,8 @@
 venv/
 opal.db
 *.db
+*.db.bak*
+*.bak
 *.csv
 !example_users.csv
 __pycache__/
@@ -14,3 +16,4 @@ data/secret.key
 # Local secrets — never commit
 .env
 !.env.example
+docker-compose.override.yaml
