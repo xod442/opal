@@ -2,6 +2,10 @@
 
 Customer churn-risk dashboard (HPE customer heat levels). Single-file FastAPI app.
 
+## Design
+Before any visual/UI change, read `DESIGN.md` (shared across opal, opal-mist,
+holo, focus, vista) for the token reference and the design process/checklist.
+
 ## Stack & layout
 - FastAPI (`app.py`, single file) + Jinja2 (`templates/`) + SQLite (`opal.db`).
 - Auth: passlib bcrypt (`bcrypt==4.0.1` pinned), itsdangerous signed session cookie.
