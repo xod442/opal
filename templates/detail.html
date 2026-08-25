@@ -126,6 +126,12 @@
     <button type="submit" class="btn-edit" style="cursor:pointer; font-family:inherit;" title="Relocate this record to {{ other_app_name }}">⇄ Move to {{ other_app_name }}</button>
   </form>
   {% endif %}
+  {% if session.role == 'admin' %}
+  <form method="post" action="{{ rp }}/customer/{{ c.id }}/delete" style="display:inline; margin-left:8px;"
+        onsubmit="return confirm('Delete “{{ c.customer_name }}” permanently?\n\nThe record, its heat history, and all attachments will be removed. This cannot be undone.');">
+    <button type="submit" class="btn-edit" style="cursor:pointer; font-family:inherit; color:#d64545; border-color:#d64545;" title="Permanently delete this customer">🗑 Delete</button>
+  </form>
+  {% endif %}
 </header>
 
 <div class="container">

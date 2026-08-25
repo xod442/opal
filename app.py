@@ -1116,6 +1116,30 @@ def move_customer(request: Request, customer_id: int):
         status_code=303)
 
 
+@app.post("/customer/{customer_id}/delete")
+def delete_customer(request: Request, customer_id: int):
+    """Permanently remove a customer and everything hanging off it — heat history
+    and attachments — then return to the dashboard. Admin only."""
+    session = get_session(request)
+    if not session or session.get("role") != "admin":
+        return RedirectResponse(url=f"{ROOT_PATH}/login", status_code=303)
+    conn = get_db()
+    customer = conn.execute("SELECT customer_name FROM customers WHERE id = ?", (customer_id,)).fetchone()
+    if not customer:
+        conn.close()
+        return HTMLResponse("Not found", status_code=404)
+    name = customer["customer_name"]
+    conn.execute("DELETE FROM attachments WHERE customer_id = ?", (customer_id,))
+    conn.execute("DELETE FROM heat_history WHERE customer_id = ?", (customer_id,))
+    conn.execute("DELETE FROM customers WHERE id = ?", (customer_id,))
+    conn.commit()
+    conn.close()
+    log_action(session["username"], "delete_customer", name, f"id={customer_id}")
+    return RedirectResponse(
+        url=f"{ROOT_PATH}/?msg={quote_plus(name + ' deleted.')}",
+        status_code=303)
+
+
 @app.post("/customer/{customer_id}/attachments")
 async def upload_attachment(request: Request, customer_id: int, file: UploadFile = File(...)):
     session = get_session(request)
